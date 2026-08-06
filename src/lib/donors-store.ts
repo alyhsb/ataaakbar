@@ -280,11 +280,58 @@ export function donorStatus(d: Donor): PaymentStatus {
 }
 
 export function stats() {
-  const collected = payments
-    .filter((p) => p.status === "paid")
-    .reduce((s, p) => s + p.amount, 0);
+  const expectedTotal = payments.reduce((s, p) => s + p.amount, 0);
+  const collected = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
   const expectedMonthly = donors.reduce((s, d) => s + d.monthlyAmount, 0);
   const paidThisMonth = donors.filter((d) => donorStatus(d) === "paid").length;
   const unpaidCount = payments.filter((p) => p.status === "unpaid").length;
-  return { total: donors.length, collected, expectedMonthly, paidThisMonth, unpaidCount };
+  const unpaidDonors = donors.filter((d) =>
+    payments.some((p) => p.donorId === d.id && p.status === "unpaid"),
+  ).length;
+  return {
+    total: donors.length,
+    collected,
+    expectedTotal,
+    remaining: Math.max(expectedTotal - collected, 0),
+    expectedMonthly,
+    paidThisMonth,
+    unpaidCount,
+    unpaidDonors,
+  };
+}
+
+/** Collected vs expected per tracked period, oldest first. */
+export function monthlySeries() {
+  const map = new Map<string, { label: string; month: number; year: number; expected: number; collected: number }>();
+  for (const p of payments) {
+    const key = `${p.year}-${String(p.month).padStart(2, "0")}`;
+    const entry =
+      map.get(key) ?? { label: monthLabel(p.month), month: p.month, year: p.year, expected: 0, collected: 0 };
+    entry.expected += p.amount;
+    if (p.status === "paid") entry.collected += p.amount;
+    map.set(key, entry);
+  }
+  return [...map.values()].sort((a, b) => a.year - b.year || a.month - b.month);
+}
+
+/** Donor payment status split for the current month. */
+export function statusSplit() {
+  const paid = donors.filter((d) => donorStatus(d) === "paid").length;
+  return [
+    { name: "مدفوع", value: paid },
+    { name: "غير مدفوع", value: donors.length - paid },
+  ];
+}
+
+/** Top donors by total paid amount. */
+export function topDonors(limit = 5) {
+  return donors
+    .map((d) => ({
+      name: d.name,
+      total: payments
+        .filter((p) => p.donorId === d.id && p.status === "paid")
+        .reduce((s, p) => s + p.amount, 0),
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
 }
