@@ -1,8 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
-import { useDonors, donorStatus, formatIQD, type PaymentStatus } from "@/lib/donors-store";
+import { DeleteDonorButton } from "@/components/DeleteDonorButton";
+import {
+  useDonors,
+  donorStatus,
+  formatIQD,
+  deleteDonor,
+  type PaymentStatus,
+} from "@/lib/donors-store";
 
 export const Route = createFileRoute("/donors/")({
   head: () => ({
@@ -31,15 +39,18 @@ function DonorsList() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<PaymentStatus | "all">("all");
 
-  const list = useMemo(
-    () =>
-      donors.filter(
-        (d) =>
-          (filter === "all" || donorStatus(d) === filter) &&
-          (d.name.includes(q) || d.phone.includes(q) || d.area.includes(q)),
-      ),
-    [donors, q, filter],
-  );
+  const list = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return donors.filter(
+      (d) =>
+        (filter === "all" || donorStatus(d) === filter) &&
+        (term === "" ||
+          d.name.toLowerCase().includes(term) ||
+          d.phone.includes(term) ||
+          d.area.toLowerCase().includes(term) ||
+          (d.notes ?? "").toLowerCase().includes(term)),
+    );
+  }, [donors, q, filter]);
 
   return (
     <AppShell
@@ -60,7 +71,8 @@ function DonorsList() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث بالاسم أو الهاتف أو المنطقة…"
+            placeholder="ابحث بالاسم أو الهاتف أو المنطقة أو الملاحظات…"
+            maxLength={60}
             className="w-full rounded-lg border border-input bg-card py-2.5 pr-10 pl-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -86,9 +98,10 @@ function DonorsList() {
               <th className="px-5 py-3 font-medium">الاسم</th>
               <th className="px-5 py-3 font-medium">الهاتف</th>
               <th className="px-5 py-3 font-medium">المنطقة</th>
-              <th className="px-5 py-3 font-medium">الاشتراك الشهري</th>
+              <th className="px-5 py-3 font-medium">التبرع الشهري</th>
+              <th className="px-5 py-3 font-medium">تاريخ الإضافة</th>
               <th className="px-5 py-3 font-medium">الحالة</th>
-              <th className="px-5 py-3 font-medium"></th>
+              <th className="px-5 py-3 font-medium">إجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -98,23 +111,41 @@ function DonorsList() {
                 <td className="px-5 py-3.5 text-muted-foreground">{d.phone}</td>
                 <td className="px-5 py-3.5 text-muted-foreground">{d.area}</td>
                 <td className="px-5 py-3.5 font-medium text-primary">{formatIQD(d.monthlyAmount)}</td>
+                <td className="px-5 py-3.5 text-muted-foreground">{d.joinedAt}</td>
                 <td className="px-5 py-3.5">
                   <StatusPill status={donorStatus(d)} />
                 </td>
                 <td className="px-5 py-3.5">
-                  <Link
-                    to="/donors/$donorId"
-                    params={{ donorId: d.id }}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    التفاصيل
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/donors/$donorId"
+                      params={{ donorId: d.id }}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      التفاصيل
+                    </Link>
+                    <Link
+                      to="/donors/edit/$donorId"
+                      params={{ donorId: d.id }}
+                      aria-label={`تعديل ${d.name}`}
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                    <DeleteDonorButton
+                      name={d.name}
+                      onConfirm={() => {
+                        deleteDonor(d.id);
+                        toast.success("تم حذف المتبرع");
+                      }}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
             {list.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
+                <td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">
                   لا توجد نتائج مطابقة
                 </td>
               </tr>
