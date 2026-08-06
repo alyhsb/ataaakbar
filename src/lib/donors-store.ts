@@ -194,25 +194,6 @@ export function deleteDonor(id: string) {
   emit();
 }
 
-function _unusedSetPaymentStatus(donorId: string, month: string, status: PaymentStatus) {
-  donors = donors.map((d) =>
-    d.id !== donorId
-      ? d
-      : {
-          ...d,
-          payments: d.payments.map((p) =>
-            p.month === month
-              ? ({
-                  ...p,
-                  status,
-                  date: status === "paid" ? `${month}-05` : undefined,
-                } satisfies MonthlyPayment)
-              : p,
-          ),
-        },
-  );
-  emit();
-}
 
 export const CURRENT_MONTH: string = MONTHS[MONTHS.length - 1] ?? "2026-08";
 export const ALL_MONTHS = MONTHS;
