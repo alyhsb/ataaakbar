@@ -4,14 +4,15 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { DeleteDonorButton } from "@/components/DeleteDonorButton";
+import { PaymentRow } from "@/components/PaymentRow";
+import { AddPaymentForm } from "@/components/AddPaymentForm";
 import {
   useDonor,
   formatIQD,
-  monthLabel,
   donorStatus,
-  setPaymentStatus,
   deleteDonor,
-  type PaymentStatus,
+  useDonorPayments,
+  sortPayments,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/donors/$donorId")({
@@ -29,11 +30,10 @@ export const Route = createFileRoute("/donors/$donorId")({
   component: DonorDetails,
 });
 
-const statusOptions: PaymentStatus[] = ["paid", "pending", "late"];
-
 function DonorDetails() {
   const { donorId } = Route.useParams();
   const donor = useDonor(donorId);
+  const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
 
   if (!donor) {
@@ -46,7 +46,7 @@ function DonorDetails() {
     );
   }
 
-  const totalPaid = donor.payments
+  const totalPaid = payments
     .filter((p) => p.status === "paid")
     .reduce((s, p) => s + p.amount, 0);
 
@@ -123,41 +123,19 @@ function DonorDetails() {
           </div>
 
           <div className="surface-card overflow-hidden">
-            <h2 className="border-b border-border px-5 py-4 font-display text-base font-bold text-ink">
-              سجل الدفعات الشهرية
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+              <h2 className="font-display text-base font-bold text-ink">سجل الدفعات الشهرية</h2>
+              <AddPaymentForm donorId={donor.id} defaultAmount={donor.monthlyAmount} />
+            </div>
             <ul className="divide-y divide-border">
-              {[...donor.payments].reverse().map((p) => (
-                <li
-                  key={p.month}
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-ink">{monthLabel(p.month)} ٢٠٢٦</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p.date ? `تاريخ الدفع: ${p.date}` : "لم يتم التسديد بعد"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-primary">{formatIQD(p.amount)}</span>
-                    <div className="flex gap-1 rounded-lg bg-secondary p-1">
-                      {statusOptions.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setPaymentStatus(donor.id, p.month, s)}
-                          className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                            p.status === s
-                              ? "bg-card text-primary shadow-sm"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {s === "paid" ? "مدفوع" : s === "pending" ? "انتظار" : "متأخر"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </li>
+              {sortPayments(payments).map((p) => (
+                <PaymentRow key={p.id} payment={p} />
               ))}
+              {payments.length === 0 ? (
+                <li className="px-5 py-10 text-center text-sm text-muted-foreground">
+                  لا توجد دفعات مسجّلة بعد
+                </li>
+              ) : null}
             </ul>
           </div>
         </div>
