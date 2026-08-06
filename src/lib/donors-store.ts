@@ -171,7 +171,7 @@ export function setPaymentStatus(donorId: string, month: string, status: Payment
   emit();
 }
 
-export const CURRENT_MONTH = MONTHS[MONTHS.length - 1];
+export const CURRENT_MONTH: string = MONTHS[MONTHS.length - 1] ?? "2026-08";
 export const ALL_MONTHS = MONTHS;
 
 export function formatIQD(n: number) {
