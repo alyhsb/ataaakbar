@@ -9,6 +9,7 @@ import {
   donorStatus,
   formatIQD,
   deleteDonor,
+  usePayments,
   type PaymentStatus,
 } from "@/lib/donors-store";
 
@@ -29,13 +30,13 @@ export const Route = createFileRoute("/donors/")({
 
 const filters: { key: PaymentStatus | "all"; label: string }[] = [
   { key: "all", label: "الكل" },
-  { key: "paid", label: "مدفوع" },
-  { key: "pending", label: "قيد الانتظار" },
-  { key: "late", label: "متأخر" },
+  { key: "paid", label: "مدفوع هذا الشهر" },
+  { key: "unpaid", label: "غير مدفوع" },
 ];
 
 function DonorsList() {
   const donors = useDonors();
+  usePayments();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<PaymentStatus | "all">("all");
 

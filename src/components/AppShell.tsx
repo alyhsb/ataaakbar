@@ -76,13 +76,12 @@ export function AppShell({
   );
 }
 
-export function StatusPill({ status }: { status: "paid" | "pending" | "late" }) {
+export function StatusPill({ status }: { status: "paid" | "unpaid" }) {
   const styles = {
     paid: "bg-primary/10 text-primary",
-    pending: "bg-accent text-accent-foreground",
-    late: "bg-destructive/10 text-destructive",
+    unpaid: "bg-destructive/10 text-destructive",
   } as const;
-  const labels = { paid: "مدفوع", pending: "قيد الانتظار", late: "متأخر" } as const;
+  const labels = { paid: "مدفوع", unpaid: "غير مدفوع" } as const;
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>
       {labels[status]}

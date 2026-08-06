@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
-import { useDonor, formatIQD, monthLabel, donorStatus, CURRENT_MONTH } from "@/lib/donors-store";
+import {
+  useDonor,
+  formatIQD,
+  monthLabel,
+  periodLabel,
+  donorStatus,
+  useDonorPayments,
+  sortPayments,
+  CURRENT_MONTH,
+  CURRENT_YEAR,
+} from "@/lib/donors-store";
 
 export const Route = createFileRoute("/donor")({
   head: () => ({
@@ -19,10 +29,12 @@ export const Route = createFileRoute("/donor")({
 
 function DonorDashboard() {
   const donor = useDonor("d1");
+  const payments = useDonorPayments("d1");
   if (!donor) return null;
 
-  const paid = donor.payments.filter((p) => p.status === "paid");
-  const current = donor.payments.find((p) => p.month === CURRENT_MONTH);
+  const paid = payments.filter((p) => p.status === "paid");
+  const unpaid = payments.filter((p) => p.status === "unpaid");
+  const current = payments.find((p) => p.month === CURRENT_MONTH && p.year === CURRENT_YEAR);
 
   return (
     <AppShell title={`أهلاً، ${donor.name}`} subtitle="متابعة اشتراكك الشهري في الموكب الحسيني">
@@ -33,9 +45,11 @@ function DonorDashboard() {
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-primary-foreground/80">
           <span>شهر {monthLabel(CURRENT_MONTH)}:</span>
-          <StatusPill status={current?.status ?? "pending"} />
+          <StatusPill status={current?.status ?? "unpaid"} />
           <span className="text-primary-foreground/50">•</span>
-          <span>الحالة العامة: {donorStatus(donor) === "paid" ? "منتظم" : "بحاجة متابعة"}</span>
+          <span>
+            الحالة العامة: {unpaid.length === 0 ? "منتظم" : `${unpaid.length} دفعة غير مسددة`}
+          </span>
         </div>
       </div>
 
@@ -53,13 +67,18 @@ function DonorDashboard() {
           سجل دفعاتك
         </h2>
         <ul className="divide-y divide-border">
-          {[...donor.payments].reverse().map((p) => (
-            <li key={p.month} className="flex items-center justify-between gap-3 px-5 py-3.5">
-              <div>
-                <p className="text-sm font-semibold text-ink">{monthLabel(p.month)} ٢٠٢٦</p>
+          {sortPayments(payments).map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink">{periodLabel(p.month, p.year)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {p.date ? `تم التسديد في ${p.date}` : "لم يُسدَّد بعد"}
+                  {p.status === "paid"
+                    ? `تم التسديد في ${p.paidAt ?? "—"}`
+                    : "لم يُسدَّد بعد"}
                 </p>
+                {p.notes ? (
+                  <p className="mt-1 text-xs text-muted-foreground/80">{p.notes}</p>
+                ) : null}
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-primary">{formatIQD(p.amount)}</span>
