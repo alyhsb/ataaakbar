@@ -1,0 +1,166 @@
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+
+export type DonorFormValues = {
+  name: string;
+  phone: string;
+  area: string;
+  monthlyAmount: number;
+  notes: string;
+};
+
+const amounts = [25000, 50000, 75000, 100000];
+
+const inputCls =
+  "w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string | undefined;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
+      {children}
+      {error ? <span className="mt-1 block text-xs text-destructive">{error}</span> : null}
+    </label>
+  );
+}
+
+export function DonorForm({
+  initial,
+  submitLabel,
+  onSubmit,
+}: {
+  initial: DonorFormValues;
+  submitLabel: string;
+  onSubmit: (values: DonorFormValues) => void;
+}) {
+  const [form, setForm] = useState<DonorFormValues>(initial);
+  const [errors, setErrors] = useState<Partial<Record<keyof DonorFormValues, string>>>({});
+
+  const set = (k: keyof DonorFormValues, v: string | number) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  function validate(values: DonorFormValues) {
+    const e: Partial<Record<keyof DonorFormValues, string>> = {};
+    const name = values.name.trim();
+    const phone = values.phone.trim();
+    if (name.length < 3 || name.length > 100) e.name = "الاسم يجب أن يكون بين ٣ و ١٠٠ حرف";
+    if (!/^[\d\s+-]{7,20}$/.test(phone)) e.phone = "رقم هاتف غير صالح";
+    if (values.area.trim().length > 60) e.area = "اسم المنطقة طويل جداً";
+    if (!Number.isFinite(values.monthlyAmount) || values.monthlyAmount < 1000)
+      e.monthlyAmount = "أقل مبلغ هو ١٠٠٠ دينار";
+    if (values.notes.length > 500) e.notes = "الملاحظات يجب ألا تتجاوز ٥٠٠ حرف";
+    return e;
+  }
+
+  return (
+    <form
+      className="surface-card max-w-2xl space-y-5 p-6"
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        const errs = validate(form);
+        setErrors(errs);
+        if (Object.keys(errs).length > 0) return;
+        onSubmit({
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          area: form.area.trim(),
+          monthlyAmount: Number(form.monthlyAmount),
+          notes: form.notes.trim(),
+        });
+      }}
+    >
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="الاسم الكامل" error={errors.name}>
+          <input
+            value={form.name}
+            maxLength={100}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="مثال: حسين علي"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="رقم الهاتف" error={errors.phone}>
+          <input
+            value={form.phone}
+            maxLength={20}
+            inputMode="tel"
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="07XX XXX XXXX"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="المنطقة" error={errors.area}>
+          <input
+            value={form.area}
+            maxLength={60}
+            onChange={(e) => set("area", e.target.value)}
+            placeholder="مثال: الكاظمية"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="مبلغ التبرع الشهري (د.ع)" error={errors.monthlyAmount}>
+          <input
+            type="number"
+            min={1000}
+            step={1000}
+            value={form.monthlyAmount}
+            onChange={(e) => set("monthlyAmount", Number(e.target.value))}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {amounts.map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => set("monthlyAmount", a)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              form.monthlyAmount === a
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40"
+            }`}
+          >
+            {a.toLocaleString("ar-IQ")} د.ع
+          </button>
+        ))}
+      </div>
+
+      <Field label="ملاحظات (اختياري)" error={errors.notes}>
+        <textarea
+          rows={3}
+          maxLength={500}
+          value={form.notes}
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="أي تفاصيل إضافية عن المتبرع…"
+          className={inputCls}
+        />
+      </Field>
+
+      <div className="flex gap-3 pt-2">
+        <button
+          type="submit"
+          className="gradient-emerald rounded-lg px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)]"
+        >
+          {submitLabel}
+        </button>
+        <Link
+          to="/donors"
+          className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary"
+        >
+          إلغاء
+        </Link>
+      </div>
+    </form>
+  );
+}
