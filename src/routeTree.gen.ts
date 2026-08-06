@@ -15,7 +15,7 @@ import { Route as DonorRouteImport } from './routes/donor'
 import { Route as DonorsIndexRouteImport } from './routes/donors.index'
 import { Route as DonorsDonorIdRouteImport } from './routes/donors.$donorId'
 import { Route as DonorsNewRouteImport } from './routes/donors.new'
-import { Route as DonorsEditRouteImport } from './routes/donors.edit.'
+import { Route as DonorsEditDonorIdRouteImport } from './routes/donors.edit.$donorId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,9 +47,9 @@ const DonorsNewRoute = DonorsNewRouteImport.update({
   path: '/donors/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DonorsEditRoute = DonorsEditRouteImport.update({
-  id: '/donors/edit/',
-  path: '/donors/edit/',
+const DonorsEditDonorIdRoute = DonorsEditDonorIdRouteImport.update({
+  id: '/donors/edit/$donorId',
+  path: '/donors/edit/$donorId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -60,7 +60,7 @@ export interface FileRoutesByFullPath {
   '/donors/$donorId': typeof DonorsDonorIdRoute
   '/donors/new': typeof DonorsNewRoute
   '/donors/': typeof DonorsIndexRoute
-  '/donors/edit/': typeof DonorsEditRoute
+  '/donors/edit/$donorId': typeof DonorsEditDonorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +69,7 @@ export interface FileRoutesByTo {
   '/donors/$donorId': typeof DonorsDonorIdRoute
   '/donors/new': typeof DonorsNewRoute
   '/donors': typeof DonorsIndexRoute
-  '/donors/edit': typeof DonorsEditRoute
+  '/donors/edit/$donorId': typeof DonorsEditDonorIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +79,7 @@ export interface FileRoutesById {
   '/donors/$donorId': typeof DonorsDonorIdRoute
   '/donors/new': typeof DonorsNewRoute
   '/donors/': typeof DonorsIndexRoute
-  '/donors/edit/': typeof DonorsEditRoute
+  '/donors/edit/$donorId': typeof DonorsEditDonorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,7 +90,7 @@ export interface FileRouteTypes {
     | '/donors/$donorId'
     | '/donors/new'
     | '/donors/'
-    | '/donors/edit/'
+    | '/donors/edit/$donorId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,7 +99,7 @@ export interface FileRouteTypes {
     | '/donors/$donorId'
     | '/donors/new'
     | '/donors'
-    | '/donors/edit'
+    | '/donors/edit/$donorId'
   id:
     | '__root__'
     | '/'
@@ -108,7 +108,7 @@ export interface FileRouteTypes {
     | '/donors/$donorId'
     | '/donors/new'
     | '/donors/'
-    | '/donors/edit/'
+    | '/donors/edit/$donorId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,7 +118,7 @@ export interface RootRouteChildren {
   DonorsDonorIdRoute: typeof DonorsDonorIdRoute
   DonorsNewRoute: typeof DonorsNewRoute
   DonorsIndexRoute: typeof DonorsIndexRoute
-  DonorsEditRoute: typeof DonorsEditRoute
+  DonorsEditDonorIdRoute: typeof DonorsEditDonorIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,11 +165,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DonorsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/donors/edit/': {
-      id: '/donors/edit/'
-      path: '/donors/edit'
-      fullPath: '/donors/edit/'
-      preLoaderRoute: typeof DonorsEditRouteImport
+    '/donors/edit/$donorId': {
+      id: '/donors/edit/$donorId'
+      path: '/donors/edit/$donorId'
+      fullPath: '/donors/edit/$donorId'
+      preLoaderRoute: typeof DonorsEditDonorIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -182,8 +182,18 @@ const rootRouteChildren: RootRouteChildren = {
   DonorsDonorIdRoute: DonorsDonorIdRoute,
   DonorsNewRoute: DonorsNewRoute,
   DonorsIndexRoute: DonorsIndexRoute,
-  DonorsEditRoute: DonorsEditRoute,
+  DonorsEditDonorIdRoute: DonorsEditDonorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
