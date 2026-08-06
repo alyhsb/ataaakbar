@@ -1,12 +1,16 @@
 import { useSyncExternalStore } from "react";
 
-export type PaymentStatus = "paid" | "pending" | "late";
+export type PaymentStatus = "paid" | "unpaid";
 
 export type MonthlyPayment = {
-  month: string; // e.g. "2026-07"
+  id: string;
+  donorId: string;
+  month: number; // 1-12
+  year: number;
   amount: number;
   status: PaymentStatus;
-  date?: string | undefined;
+  paidAt?: string | undefined; // YYYY-MM-DD
+  notes?: string | undefined;
 };
 
 export type Donor = {
@@ -17,40 +21,36 @@ export type Donor = {
   monthlyAmount: number;
   joinedAt: string;
   notes?: string | undefined;
-  payments: MonthlyPayment[];
 };
 
-const MONTHS = ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"];
-
-export const MONTH_LABELS: Record<string, string> = {
-  "2026-01": "كانون الثاني",
-  "2026-02": "شباط",
-  "2026-03": "آذار",
-  "2026-04": "نيسان",
-  "2026-05": "أيار",
-  "2026-06": "حزيران",
-  "2026-07": "تموز",
-  "2026-08": "آب",
-  "2026-09": "أيلول",
-  "2026-10": "تشرين الأول",
-  "2026-11": "تشرين الثاني",
-  "2026-12": "كانون الأول",
-};
+export const MONTH_NAMES: string[] = [
+  "كانون الثاني",
+  "شباط",
+  "آذار",
+  "نيسان",
+  "أيار",
+  "حزيران",
+  "تموز",
+  "آب",
+  "أيلول",
+  "تشرين الأول",
+  "تشرين الثاني",
+  "كانون الأول",
+];
 
 export const STATUS_LABELS: Record<PaymentStatus, string> = {
   paid: "مدفوع",
-  pending: "قيد الانتظار",
-  late: "متأخر",
+  unpaid: "غير مدفوع",
 };
 
-function history(amount: number, statuses: PaymentStatus[]): MonthlyPayment[] {
-  return MONTHS.map((month, i) => ({
-    month,
-    amount,
-    status: statuses[i] ?? "pending",
-    date: statuses[i] === "paid" ? `${month}-05` : undefined,
-  }));
-}
+export const CURRENT_YEAR = 2026;
+export const CURRENT_MONTH = 8;
+
+/** Months tracked by default for every donor (most recent last). */
+const PERIODS: { month: number; year: number }[] = [3, 4, 5, 6, 7, 8].map((m) => ({
+  month: m,
+  year: CURRENT_YEAR,
+}));
 
 let donors: Donor[] = [
   {
@@ -61,7 +61,6 @@ let donors: Donor[] = [
     monthlyAmount: 50000,
     joinedAt: "2025-11-02",
     notes: "متبرع مؤسس للموكب",
-    payments: history(50000, ["paid", "paid", "paid", "paid", "paid", "pending"]),
   },
   {
     id: "d2",
@@ -70,7 +69,6 @@ let donors: Donor[] = [
     area: "الجادرية",
     monthlyAmount: 75000,
     joinedAt: "2025-12-14",
-    payments: history(75000, ["paid", "paid", "late", "paid", "paid", "paid"]),
   },
   {
     id: "d3",
@@ -79,7 +77,6 @@ let donors: Donor[] = [
     area: "الكرادة",
     monthlyAmount: 25000,
     joinedAt: "2026-01-08",
-    payments: history(25000, ["paid", "paid", "paid", "late", "late", "late"]),
   },
   {
     id: "d4",
@@ -89,7 +86,6 @@ let donors: Donor[] = [
     monthlyAmount: 100000,
     joinedAt: "2025-09-21",
     notes: "يتكفل بمصاريف الطبخ",
-    payments: history(100000, ["paid", "paid", "paid", "paid", "paid", "paid"]),
   },
   {
     id: "d5",
@@ -98,7 +94,6 @@ let donors: Donor[] = [
     area: "زيونة",
     monthlyAmount: 40000,
     joinedAt: "2026-02-11",
-    payments: history(40000, ["pending", "paid", "paid", "paid", "pending", "pending"]),
   },
   {
     id: "d6",
@@ -107,26 +102,64 @@ let donors: Donor[] = [
     area: "الشعب",
     monthlyAmount: 30000,
     joinedAt: "2026-03-03",
-    payments: history(30000, ["paid", "paid", "paid", "paid", "late", "pending"]),
   },
+];
+
+function seed(donorId: string, amount: number, flags: boolean[]): MonthlyPayment[] {
+  return PERIODS.map((p, i) => {
+    const paid = flags[i] ?? false;
+    return {
+      id: `${donorId}-${p.year}-${p.month}`,
+      donorId,
+      month: p.month,
+      year: p.year,
+      amount,
+      status: paid ? ("paid" as const) : ("unpaid" as const),
+      paidAt: paid ? `${p.year}-${String(p.month).padStart(2, "0")}-05` : undefined,
+      notes: undefined,
+    };
+  });
+}
+
+let payments: MonthlyPayment[] = [
+  ...seed("d1", 50000, [true, true, true, true, true, false]),
+  ...seed("d2", 75000, [true, true, false, true, true, true]),
+  ...seed("d3", 25000, [true, true, true, false, false, false]),
+  ...seed("d4", 100000, [true, true, true, true, true, true]),
+  ...seed("d5", 40000, [false, true, true, true, false, false]),
+  ...seed("d6", 30000, [true, true, true, true, false, false]),
 ];
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
-
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
 }
 
-const getSnapshot = () => donors;
+const getDonors = () => donors;
+const getPayments = () => payments;
 
 export function useDonors() {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useSyncExternalStore(subscribe, getDonors, getDonors);
 }
 
 export function useDonor(id: string) {
   return useDonors().find((d) => d.id === id);
+}
+
+export function usePayments() {
+  return useSyncExternalStore(subscribe, getPayments, getPayments);
+}
+
+export function useDonorPayments(donorId: string) {
+  return usePayments().filter((p) => p.donorId === donorId);
+}
+
+export function sortPayments(list: MonthlyPayment[], desc = true) {
+  return [...list].sort((a, b) =>
+    desc ? b.year - a.year || b.month - a.month : a.year - b.year || a.month - b.month,
+  );
 }
 
 export function addDonor(input: {
@@ -140,88 +173,118 @@ export function addDonor(input: {
     id: `d${Date.now()}`,
     ...input,
     joinedAt: new Date().toISOString().slice(0, 10),
-    payments: MONTHS.map((month) => ({
-      month,
-      amount: input.monthlyAmount,
-      status: "pending" as PaymentStatus,
-    })),
   };
   donors = [donor, ...donors];
+  payments = [...payments, ...seed(donor.id, donor.monthlyAmount, [])];
   emit();
   return donor;
-}
-
-export function setPaymentStatus(donorId: string, month: string, status: PaymentStatus) {
-  donors = donors.map((d) =>
-    d.id !== donorId
-      ? d
-      : {
-          ...d,
-          payments: d.payments.map((p) =>
-            p.month === month
-              ? ({
-                  ...p,
-                  status,
-                  date: status === "paid" ? `${month}-05` : undefined,
-                } satisfies MonthlyPayment)
-              : p,
-          ),
-        },
-  );
-  emit();
 }
 
 export function updateDonor(
   id: string,
   input: { name: string; phone: string; area: string; monthlyAmount: number; notes?: string },
 ) {
-  donors = donors.map((d) =>
-    d.id !== id
-      ? d
-      : {
-          ...d,
-          ...input,
-          payments: d.payments.map((p) =>
-            p.status === "paid" ? p : { ...p, amount: input.monthlyAmount },
-          ),
-        },
+  donors = donors.map((d) => (d.id !== id ? d : { ...d, ...input }));
+  payments = payments.map((p) =>
+    p.donorId === id && p.status === "unpaid" ? { ...p, amount: input.monthlyAmount } : p,
   );
   emit();
 }
 
 export function deleteDonor(id: string) {
   donors = donors.filter((d) => d.id !== id);
+  payments = payments.filter((p) => p.donorId !== id);
   emit();
 }
 
+export function setPaymentStatus(paymentId: string, status: PaymentStatus) {
+  payments = payments.map((p) =>
+    p.id !== paymentId
+      ? p
+      : {
+          ...p,
+          status,
+          paidAt: status === "paid" ? (p.paidAt ?? todayISO()) : undefined,
+        },
+  );
+  emit();
+}
 
-export const CURRENT_MONTH: string = MONTHS[MONTHS.length - 1] ?? "2026-08";
-export const ALL_MONTHS = MONTHS;
+export function togglePaymentStatus(paymentId: string) {
+  const p = payments.find((x) => x.id === paymentId);
+  if (p) setPaymentStatus(paymentId, p.status === "paid" ? "unpaid" : "paid");
+}
+
+export function updatePayment(
+  paymentId: string,
+  input: { amount?: number; paidAt?: string | undefined; notes?: string | undefined },
+) {
+  payments = payments.map((p) => (p.id !== paymentId ? p : { ...p, ...input }));
+  emit();
+}
+
+export function addPayment(input: {
+  donorId: string;
+  month: number;
+  year: number;
+  amount: number;
+  status: PaymentStatus;
+  notes?: string;
+}) {
+  const payment: MonthlyPayment = {
+    id: `${input.donorId}-${input.year}-${input.month}-${Date.now()}`,
+    donorId: input.donorId,
+    month: input.month,
+    year: input.year,
+    amount: input.amount,
+    status: input.status,
+    paidAt: input.status === "paid" ? todayISO() : undefined,
+    notes: input.notes,
+  };
+  payments = [...payments, payment];
+  emit();
+  return payment;
+}
+
+export function deletePayment(paymentId: string) {
+  payments = payments.filter((p) => p.id !== paymentId);
+  emit();
+}
+
+export function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function formatIQD(n: number) {
   return `${n.toLocaleString("ar-IQ")} د.ع`;
 }
 
-export function monthLabel(month: string) {
-  return MONTH_LABELS[month] ?? month;
+export function monthLabel(month: number) {
+  return MONTH_NAMES[month - 1] ?? String(month);
 }
 
+export function periodLabel(month: number, year: number) {
+  return `${monthLabel(month)} ${year}`;
+}
+
+export function donorPayments(donorId: string) {
+  return payments.filter((p) => p.donorId === donorId);
+}
+
+/** Current-month status for a donor. */
 export function donorStatus(d: Donor): PaymentStatus {
-  const current = d.payments.find((p) => p.month === CURRENT_MONTH);
-  if (d.payments.some((p) => p.status === "late")) return "late";
-  return current?.status ?? "pending";
+  const current = payments.find(
+    (p) => p.donorId === d.id && p.month === CURRENT_MONTH && p.year === CURRENT_YEAR,
+  );
+  return current?.status ?? "unpaid";
 }
 
 export function stats() {
-  const list = donors;
-  const collected = list.reduce(
-    (sum, d) => sum + d.payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0),
-    0,
-  );
-  const expectedMonthly = list.reduce((s, d) => s + d.monthlyAmount, 0);
-  const paidThisMonth = list.filter(
-    (d) => d.payments.find((p) => p.month === CURRENT_MONTH)?.status === "paid",
-  ).length;
-  const lateCount = list.filter((d) => donorStatus(d) === "late").length;
-  return { total: list.length, collected, expectedMonthly, paidThisMonth, lateCount };
+  const collected = payments
+    .filter((p) => p.status === "paid")
+    .reduce((s, p) => s + p.amount, 0);
+  const expectedMonthly = donors.reduce((s, d) => s + d.monthlyAmount, 0);
+  const paidThisMonth = donors.filter((d) => donorStatus(d) === "paid").length;
+  const unpaidCount = payments.filter((p) => p.status === "unpaid").length;
+  return { total: donors.length, collected, expectedMonthly, paidThisMonth, unpaidCount };
 }
