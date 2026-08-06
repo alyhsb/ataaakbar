@@ -10,33 +10,91 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DonorRouteImport } from './routes/donor'
+import { Route as DonorsIndexRouteImport } from './routes/donors.index'
+import { Route as DonorsDonorIdRouteImport } from './routes/donors.$donorId'
+import { Route as DonorsNewRouteImport } from './routes/donors.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DonorRoute = DonorRouteImport.update({
+  id: '/donor',
+  path: '/donor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DonorsIndexRoute = DonorsIndexRouteImport.update({
+  id: '/donors/',
+  path: '/donors/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DonorsDonorIdRoute = DonorsDonorIdRouteImport.update({
+  id: '/donors/$donorId',
+  path: '/donors/$donorId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DonorsNewRoute = DonorsNewRouteImport.update({
+  id: '/donors/new',
+  path: '/donors/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/donor': typeof DonorRoute
+  '/donors/$donorId': typeof DonorsDonorIdRoute
+  '/donors/new': typeof DonorsNewRoute
+  '/donors/': typeof DonorsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/donor': typeof DonorRoute
+  '/donors/$donorId': typeof DonorsDonorIdRoute
+  '/donors/new': typeof DonorsNewRoute
+  '/donors': typeof DonorsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/donor': typeof DonorRoute
+  '/donors/$donorId': typeof DonorsDonorIdRoute
+  '/donors/new': typeof DonorsNewRoute
+  '/donors/': typeof DonorsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    '/' | '/admin' | '/donor' | '/donors/$donorId' | '/donors/new' | '/donors/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/admin' | '/donor' | '/donors/$donorId' | '/donors/new' | '/donors'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/donor'
+    | '/donors/$donorId'
+    | '/donors/new'
+    | '/donors/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  DonorRoute: typeof DonorRoute
+  DonorsDonorIdRoute: typeof DonorsDonorIdRoute
+  DonorsNewRoute: typeof DonorsNewRoute
+  DonorsIndexRoute: typeof DonorsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +106,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/donor': {
+      id: '/donor'
+      path: '/donor'
+      fullPath: '/donor'
+      preLoaderRoute: typeof DonorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/donors/': {
+      id: '/donors/'
+      path: '/donors'
+      fullPath: '/donors/'
+      preLoaderRoute: typeof DonorsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/donors/$donorId': {
+      id: '/donors/$donorId'
+      path: '/donors/$donorId'
+      fullPath: '/donors/$donorId'
+      preLoaderRoute: typeof DonorsDonorIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/donors/new': {
+      id: '/donors/new'
+      path: '/donors/new'
+      fullPath: '/donors/new'
+      preLoaderRoute: typeof DonorsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  DonorRoute: DonorRoute,
+  DonorsDonorIdRoute: DonorsDonorIdRoute,
+  DonorsNewRoute: DonorsNewRoute,
+  DonorsIndexRoute: DonorsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
