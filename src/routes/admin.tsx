@@ -8,6 +8,7 @@ import {
   donorStatus,
   CURRENT_MONTH,
   monthLabel,
+  usePayments,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/admin")({
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/admin")({
 
 function AdminDashboard() {
   const donors = useDonors();
+  usePayments();
   const s = stats();
   const recent = [...donors].slice(0, 5);
 
@@ -34,7 +36,7 @@ function AdminDashboard() {
     { label: "عدد المتبرعين", value: String(s.total), icon: Users },
     { label: "إجمالي المحصّل", value: formatIQD(s.collected), icon: Wallet },
     { label: `دفعوا شهر ${monthLabel(CURRENT_MONTH)}`, value: `${s.paidThisMonth} / ${s.total}`, icon: CheckCircle2 },
-    { label: "دفعات متأخرة", value: String(s.lateCount), icon: AlertTriangle },
+    { label: "دفعات غير مسددة", value: String(s.unpaidCount), icon: AlertTriangle },
   ];
 
   return (
