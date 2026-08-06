@@ -6,7 +6,7 @@ export type MonthlyPayment = {
   month: string; // e.g. "2026-07"
   amount: number;
   status: PaymentStatus;
-  date?: string;
+  date?: string | undefined;
 };
 
 export type Donor = {
@@ -16,7 +16,7 @@ export type Donor = {
   area: string;
   monthlyAmount: number;
   joinedAt: string;
-  notes?: string;
+  notes?: string | undefined;
   payments: MonthlyPayment[];
 };
 
@@ -159,7 +159,11 @@ export function setPaymentStatus(donorId: string, month: string, status: Payment
           ...d,
           payments: d.payments.map((p) =>
             p.month === month
-              ? { ...p, status, date: status === "paid" ? `${month}-05` : undefined }
+              ? ({
+                  ...p,
+                  status,
+                  date: status === "paid" ? `${month}-05` : undefined,
+                } satisfies MonthlyPayment)
               : p,
           ),
         },
