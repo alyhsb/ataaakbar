@@ -229,7 +229,7 @@ export function addPayment(input: {
   year: number;
   amount: number;
   status: PaymentStatus;
-  notes?: string;
+  notes?: string | undefined;
 }) {
   const payment: MonthlyPayment = {
     id: `${input.donorId}-${input.year}-${input.month}-${Date.now()}`,
