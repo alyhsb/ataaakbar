@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { DonorForm } from "@/components/DonorForm";
 import { useDonor, updateDonor } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/donors/edit/")({
+export const Route = createFileRoute("/donors/edit/$donorId")({
   head: () => ({
     meta: [
       { title: "تعديل بيانات المتبرع — عطاء" },
