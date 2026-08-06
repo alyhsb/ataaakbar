@@ -171,6 +171,30 @@ export function setPaymentStatus(donorId: string, month: string, status: Payment
   emit();
 }
 
+export function updateDonor(
+  id: string,
+  input: { name: string; phone: string; area: string; monthlyAmount: number; notes?: string },
+) {
+  donors = donors.map((d) =>
+    d.id !== id
+      ? d
+      : {
+          ...d,
+          ...input,
+          payments: d.payments.map((p) =>
+            p.status === "paid" ? p : { ...p, amount: input.monthlyAmount },
+          ),
+        },
+  );
+  emit();
+}
+
+export function deleteDonor(id: string) {
+  donors = donors.filter((d) => d.id !== id);
+  emit();
+}
+
+
 export const CURRENT_MONTH: string = MONTHS[MONTHS.length - 1] ?? "2026-08";
 export const ALL_MONTHS = MONTHS;
 

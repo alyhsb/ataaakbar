@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Phone, MapPin, CalendarDays } from "lucide-react";
+import { ArrowRight, Phone, MapPin, CalendarDays, Pencil } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
+import { DeleteDonorButton } from "@/components/DeleteDonorButton";
 import {
   useDonor,
   formatIQD,
   monthLabel,
   donorStatus,
   setPaymentStatus,
+  deleteDonor,
   type PaymentStatus,
 } from "@/lib/donors-store";
 
@@ -30,6 +34,7 @@ const statusOptions: PaymentStatus[] = ["paid", "pending", "late"];
 function DonorDetails() {
   const { donorId } = Route.useParams();
   const donor = useDonor(donorId);
+  const navigate = useNavigate();
 
   if (!donor) {
     return (
@@ -50,13 +55,32 @@ function DonorDetails() {
       title={donor.name}
       subtitle="ملف المتبرع وسجل الدفعات الشهرية"
       action={
-        <Link
-          to="/donors"
-          className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary"
-        >
-          <ArrowRight className="h-4 w-4" />
-          رجوع
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/donors/edit/$donorId"
+            params={{ donorId: donor.id }}
+            className="gradient-emerald flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)]"
+          >
+            <Pencil className="h-4 w-4" />
+            تعديل
+          </Link>
+          <DeleteDonorButton
+            name={donor.name}
+            variant="button"
+            onConfirm={() => {
+              deleteDonor(donor.id);
+              toast.success("تم حذف المتبرع");
+              navigate({ to: "/donors" });
+            }}
+          />
+          <Link
+            to="/donors"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-secondary"
+          >
+            <ArrowRight className="h-4 w-4" />
+            رجوع
+          </Link>
+        </div>
       }
     >
       <div className="grid gap-5 lg:grid-cols-3">
@@ -74,7 +98,7 @@ function DonorDetails() {
           <dl className="space-y-3 border-t border-border pt-4 text-sm">
             <Row icon={Phone} label="الهاتف" value={donor.phone} />
             <Row icon={MapPin} label="المنطقة" value={donor.area} />
-            <Row icon={CalendarDays} label="تاريخ الانضمام" value={donor.joinedAt} />
+            <Row icon={CalendarDays} label="تاريخ الإضافة" value={donor.joinedAt} />
           </dl>
 
           {donor.notes ? (
@@ -87,7 +111,7 @@ function DonorDetails() {
         <div className="grid gap-5 lg:col-span-2">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="surface-card p-5">
-              <p className="text-sm text-muted-foreground">الاشتراك الشهري</p>
+              <p className="text-sm text-muted-foreground">التبرع الشهري</p>
               <p className="mt-2 font-display text-2xl font-bold text-primary">
                 {formatIQD(donor.monthlyAmount)}
               </p>
