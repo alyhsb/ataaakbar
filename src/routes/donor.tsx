@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
+import { NotificationBell } from "@/components/NotificationBell";
 import {
   useDonor,
   formatIQD,
@@ -37,7 +38,11 @@ function DonorDashboard() {
   const current = payments.find((p) => p.month === CURRENT_MONTH && p.year === CURRENT_YEAR);
 
   return (
-    <AppShell title={`أهلاً، ${donor.name}`} subtitle="متابعة اشتراكك الشهري في الموكب الحسيني">
+    <AppShell
+      title={`أهلاً، ${donor.name}`}
+      subtitle="متابعة اشتراكك الشهري في الموكب الحسيني"
+      action={<NotificationBell donorId={donor.id} />}
+    >
       <div className="gradient-emerald relative overflow-hidden rounded-2xl p-6 shadow-[var(--shadow-soft)] sm:p-8">
         <p className="text-sm text-primary-foreground/75">اشتراكك الشهري</p>
         <p className="mt-2 font-display text-4xl font-bold text-gradient-gold">
