@@ -2,6 +2,18 @@ import { useSyncExternalStore } from "react";
 
 export type PaymentStatus = "paid" | "unpaid";
 
+export type NotificationKind = "new_month" | "payment_confirmed";
+
+export type AppNotification = {
+  id: string;
+  donorId: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  createdAt: string; // ISO
+  read: boolean;
+};
+
 export type MonthlyPayment = {
   id: string;
   donorId: string;
@@ -131,6 +143,78 @@ let payments: MonthlyPayment[] = [
 ];
 
 const listeners = new Set<() => void>();
+
+let notifications: AppNotification[] = [];
+
+function pushNotification(input: {
+  donorId: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+}) {
+  notifications = [
+    {
+      id: `n${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: new Date().toISOString(),
+      read: false,
+      ...input,
+    },
+    ...notifications,
+  ];
+}
+
+const getNotifications = () => notifications;
+
+export function useNotifications(donorId?: string) {
+  const all = useSyncExternalStore(subscribe, getNotifications, getNotifications);
+  return donorId ? all.filter((n) => n.donorId === donorId) : all;
+}
+
+export function markNotificationRead(id: string) {
+  notifications = notifications.map((n) => (n.id !== id ? n : { ...n, read: true }));
+  emit();
+}
+
+export function markAllNotificationsRead(donorId: string) {
+  notifications = notifications.map((n) => (n.donorId !== donorId ? n : { ...n, read: true }));
+  emit();
+}
+
+/** Opens the next month for every donor and notifies them in-app. */
+export function startNewMonth() {
+  const latest = payments.reduce(
+    (acc, p) => (p.year > acc.year || (p.year === acc.year && p.month > acc.month) ? p : acc),
+    { month: CURRENT_MONTH, year: CURRENT_YEAR } as { month: number; year: number },
+  );
+  const month = latest.month === 12 ? 1 : latest.month + 1;
+  const year = latest.month === 12 ? latest.year + 1 : latest.year;
+
+  const created: MonthlyPayment[] = [];
+  for (const d of donors) {
+    const exists = payments.some((p) => p.donorId === d.id && p.month === month && p.year === year);
+    if (exists) continue;
+    created.push({
+      id: `${d.id}-${year}-${month}`,
+      donorId: d.id,
+      month,
+      year,
+      amount: d.monthlyAmount,
+      status: "unpaid",
+      paidAt: undefined,
+      notes: undefined,
+    });
+    pushNotification({
+      donorId: d.id,
+      kind: "new_month",
+      title: `بدأ شهر ${monthLabel(month)} ${year}`,
+      body: `اشتراكك لهذا الشهر ${formatIQD(d.monthlyAmount)} وهو غير مسدد حالياً.`,
+    });
+  }
+  payments = [...payments, ...created];
+  emit();
+  return { month, year, count: created.length };
+}
+
 const emit = () => listeners.forEach((l) => l());
 function subscribe(cb: () => void) {
   listeners.add(cb);
@@ -198,6 +282,7 @@ export function deleteDonor(id: string) {
 }
 
 export function setPaymentStatus(paymentId: string, status: PaymentStatus) {
+  const target = payments.find((p) => p.id === paymentId);
   payments = payments.map((p) =>
     p.id !== paymentId
       ? p
@@ -207,6 +292,14 @@ export function setPaymentStatus(paymentId: string, status: PaymentStatus) {
           paidAt: status === "paid" ? (p.paidAt ?? todayISO()) : undefined,
         },
   );
+  if (target && status === "paid" && target.status !== "paid") {
+    pushNotification({
+      donorId: target.donorId,
+      kind: "payment_confirmed",
+      title: "تم تأكيد دفعتك",
+      body: `تم تأكيد تسديد ${formatIQD(target.amount)} عن ${periodLabel(target.month, target.year)}.`,
+    });
+  }
   emit();
 }
 

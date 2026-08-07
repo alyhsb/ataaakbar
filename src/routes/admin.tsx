@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Users, Wallet, CheckCircle2, AlertTriangle, TrendingUp, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import {
   Area,
   AreaChart,
@@ -26,6 +27,8 @@ import {
   donorStatus,
   CURRENT_MONTH,
   monthLabel,
+  startNewMonth,
+  periodLabel,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/admin")({
@@ -84,12 +87,27 @@ function AdminDashboard() {
       title="لوحة التحكم"
       subtitle="نظرة شاملة على تبرعات الموكب الحسيني"
       action={
-        <Link
-          to="/donors/new"
-          className="gradient-gold rounded-lg px-4 py-2 text-sm font-semibold text-gold-foreground shadow-[var(--shadow-soft)]"
-        >
-          + إضافة متبرع
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              const r = startNewMonth();
+              if (r.count === 0) {
+                toast.info("تم فتح هذا الشهر مسبقاً");
+              } else {
+                toast.success(`تم بدء ${periodLabel(r.month, r.year)} وإشعار ${r.count} متبرع`);
+              }
+            }}
+            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
+          >
+            بدء شهر جديد
+          </button>
+          <Link
+            to="/donors/new"
+            className="gradient-gold rounded-lg px-4 py-2 text-sm font-semibold text-gold-foreground shadow-[var(--shadow-soft)]"
+          >
+            + إضافة متبرع
+          </Link>
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
