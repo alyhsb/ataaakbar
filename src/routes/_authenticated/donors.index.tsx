@@ -13,7 +13,7 @@ import {
   type PaymentStatus,
 } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/donors/")({
+export const Route = createFileRoute("/_authenticated/donors/")({
   head: () => ({
     meta: [
       { title: "قائمة المتبرعين — عطاء" },

@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { DonorForm } from "@/components/DonorForm";
 import { addDonor } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/donors/new")({
+export const Route = createFileRoute("/_authenticated/donors/new")({
   head: () => ({
     meta: [
       { title: "إضافة متبرع جديد — عطاء" },
@@ -27,10 +27,14 @@ function AddDonorPage() {
       <DonorForm
         initial={{ name: "", phone: "", area: "", monthlyAmount: 50000, notes: "" }}
         submitLabel="حفظ المتبرع"
-        onSubmit={(values) => {
-          const donor = addDonor(values);
-          toast.success("تمت إضافة المتبرع بنجاح");
-          navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
+        onSubmit={async (values) => {
+          try {
+            const donor = await addDonor(values);
+            toast.success("تمت إضافة المتبرع بنجاح");
+            navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
+          } catch {
+            toast.error("تعذّر حفظ المتبرع");
+          }
         }}
       />
     </AppShell>

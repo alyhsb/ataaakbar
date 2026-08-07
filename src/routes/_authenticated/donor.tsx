@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useAuth } from "@/lib/auth";
 import {
-  useDonor,
+  useDonorByUser,
+  useStoreLoaded,
   formatIQD,
   monthLabel,
   periodLabel,
@@ -13,7 +15,7 @@ import {
   CURRENT_YEAR,
 } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/donor")({
+export const Route = createFileRoute("/_authenticated/donor")({
   head: () => ({
     meta: [
       { title: "بوابة المتبرع — عطاء" },
@@ -29,9 +31,20 @@ export const Route = createFileRoute("/donor")({
 });
 
 function DonorDashboard() {
-  const donor = useDonor("d1");
-  const payments = useDonorPayments("d1");
-  if (!donor) return null;
+  const { userId } = useAuth();
+  const loaded = useStoreLoaded();
+  const donor = useDonorByUser(userId ?? undefined);
+  const payments = useDonorPayments(donor?.id ?? "");
+
+  if (!donor) {
+    return (
+      <AppShell title="بوابة المتبرع">
+        <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+          {loaded ? "لا يوجد ملف متبرع مرتبط بحسابك بعد. تواصل مع مسؤول الموكب." : "جارٍ التحميل…"}
+        </div>
+      </AppShell>
+    );
+  }
 
   const paid = payments.filter((p) => p.status === "paid");
   const unpaid = payments.filter((p) => p.status === "unpaid");
