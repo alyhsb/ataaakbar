@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type PaymentStatus = "paid" | "unpaid";
-
 export type NotificationKind = "new_month" | "payment_confirmed";
 
 export type AppNotification = {
@@ -10,23 +10,24 @@ export type AppNotification = {
   kind: NotificationKind;
   title: string;
   body: string;
-  createdAt: string; // ISO
+  createdAt: string;
   read: boolean;
 };
 
 export type MonthlyPayment = {
   id: string;
   donorId: string;
-  month: number; // 1-12
+  month: number;
   year: number;
   amount: number;
   status: PaymentStatus;
-  paidAt?: string | undefined; // YYYY-MM-DD
+  paidAt?: string | undefined;
   notes?: string | undefined;
 };
 
 export type Donor = {
   id: string;
+  userId?: string | undefined;
   name: string;
   phone: string;
   area: string;
@@ -55,166 +56,20 @@ export const STATUS_LABELS: Record<PaymentStatus, string> = {
   unpaid: "غير مدفوع",
 };
 
-export const CURRENT_YEAR = 2026;
-export const CURRENT_MONTH = 8;
+const now = new Date();
+export const CURRENT_YEAR = now.getFullYear();
+export const CURRENT_MONTH = now.getMonth() + 1;
 
-/** Months tracked by default for every donor (most recent last). */
-const PERIODS: { month: number; year: number }[] = [3, 4, 5, 6, 7, 8].map((m) => ({
-  month: m,
-  year: CURRENT_YEAR,
-}));
+/* ------------------------------------------------------------------ */
+/* Local cache mirrored from the database                              */
+/* ------------------------------------------------------------------ */
 
-let donors: Donor[] = [
-  {
-    id: "d1",
-    name: "حيدر عبد الأمير",
-    phone: "0770 123 4567",
-    area: "الكاظمية",
-    monthlyAmount: 50000,
-    joinedAt: "2025-11-02",
-    notes: "متبرع مؤسس للموكب",
-  },
-  {
-    id: "d2",
-    name: "زينب الموسوي",
-    phone: "0781 998 2210",
-    area: "الجادرية",
-    monthlyAmount: 75000,
-    joinedAt: "2025-12-14",
-  },
-  {
-    id: "d3",
-    name: "علي كاظم الحسيني",
-    phone: "0750 445 1120",
-    area: "الكرادة",
-    monthlyAmount: 25000,
-    joinedAt: "2026-01-08",
-  },
-  {
-    id: "d4",
-    name: "مصطفى الجبوري",
-    phone: "0771 300 7788",
-    area: "الأعظمية",
-    monthlyAmount: 100000,
-    joinedAt: "2025-09-21",
-    notes: "يتكفل بمصاريف الطبخ",
-  },
-  {
-    id: "d5",
-    name: "فاطمة عبد الرزاق",
-    phone: "0783 221 5560",
-    area: "زيونة",
-    monthlyAmount: 40000,
-    joinedAt: "2026-02-11",
-  },
-  {
-    id: "d6",
-    name: "أحمد الشمري",
-    phone: "0772 010 9033",
-    area: "الشعب",
-    monthlyAmount: 30000,
-    joinedAt: "2026-03-03",
-  },
-];
-
-function seed(donorId: string, amount: number, flags: boolean[]): MonthlyPayment[] {
-  return PERIODS.map((p, i) => {
-    const paid = flags[i] ?? false;
-    return {
-      id: `${donorId}-${p.year}-${p.month}`,
-      donorId,
-      month: p.month,
-      year: p.year,
-      amount,
-      status: paid ? ("paid" as const) : ("unpaid" as const),
-      paidAt: paid ? `${p.year}-${String(p.month).padStart(2, "0")}-05` : undefined,
-      notes: undefined,
-    };
-  });
-}
-
-let payments: MonthlyPayment[] = [
-  ...seed("d1", 50000, [true, true, true, true, true, false]),
-  ...seed("d2", 75000, [true, true, false, true, true, true]),
-  ...seed("d3", 25000, [true, true, true, false, false, false]),
-  ...seed("d4", 100000, [true, true, true, true, true, true]),
-  ...seed("d5", 40000, [false, true, true, true, false, false]),
-  ...seed("d6", 30000, [true, true, true, true, false, false]),
-];
+let donors: Donor[] = [];
+let payments: MonthlyPayment[] = [];
+let notifications: AppNotification[] = [];
+let loaded = false;
 
 const listeners = new Set<() => void>();
-
-let notifications: AppNotification[] = [];
-
-function pushNotification(input: {
-  donorId: string;
-  kind: NotificationKind;
-  title: string;
-  body: string;
-}) {
-  notifications = [
-    {
-      id: `n${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      createdAt: new Date().toISOString(),
-      read: false,
-      ...input,
-    },
-    ...notifications,
-  ];
-}
-
-const getNotifications = () => notifications;
-
-export function useNotifications(donorId?: string) {
-  const all = useSyncExternalStore(subscribe, getNotifications, getNotifications);
-  return donorId ? all.filter((n) => n.donorId === donorId) : all;
-}
-
-export function markNotificationRead(id: string) {
-  notifications = notifications.map((n) => (n.id !== id ? n : { ...n, read: true }));
-  emit();
-}
-
-export function markAllNotificationsRead(donorId: string) {
-  notifications = notifications.map((n) => (n.donorId !== donorId ? n : { ...n, read: true }));
-  emit();
-}
-
-/** Opens the next month for every donor and notifies them in-app. */
-export function startNewMonth() {
-  const latest = payments.reduce(
-    (acc, p) => (p.year > acc.year || (p.year === acc.year && p.month > acc.month) ? p : acc),
-    { month: CURRENT_MONTH, year: CURRENT_YEAR } as { month: number; year: number },
-  );
-  const month = latest.month === 12 ? 1 : latest.month + 1;
-  const year = latest.month === 12 ? latest.year + 1 : latest.year;
-
-  const created: MonthlyPayment[] = [];
-  for (const d of donors) {
-    const exists = payments.some((p) => p.donorId === d.id && p.month === month && p.year === year);
-    if (exists) continue;
-    created.push({
-      id: `${d.id}-${year}-${month}`,
-      donorId: d.id,
-      month,
-      year,
-      amount: d.monthlyAmount,
-      status: "unpaid",
-      paidAt: undefined,
-      notes: undefined,
-    });
-    pushNotification({
-      donorId: d.id,
-      kind: "new_month",
-      title: `بدأ شهر ${monthLabel(month)} ${year}`,
-      body: `اشتراكك لهذا الشهر ${formatIQD(d.monthlyAmount)} وهو غير مسدد حالياً.`,
-    });
-  }
-  payments = [...payments, ...created];
-  emit();
-  return { month, year, count: created.length };
-}
-
 const emit = () => listeners.forEach((l) => l());
 function subscribe(cb: () => void) {
   listeners.add(cb);
@@ -223,13 +78,107 @@ function subscribe(cb: () => void) {
 
 const getDonors = () => donors;
 const getPayments = () => payments;
+const getNotifications = () => notifications;
+const getLoaded = () => loaded;
+
+type DonorRow = {
+  id: string;
+  user_id: string | null;
+  name: string;
+  phone: string;
+  area: string;
+  monthly_amount: number;
+  notes: string | null;
+  joined_at: string;
+};
+type PaymentRowDb = {
+  id: string;
+  donor_id: string;
+  month: number;
+  year: number;
+  amount: number;
+  status: string;
+  paid_at: string | null;
+  notes: string | null;
+};
+type NotificationRow = {
+  id: string;
+  donor_id: string;
+  kind: string;
+  title: string;
+  body: string;
+  read: boolean;
+  created_at: string;
+};
+
+const mapDonor = (r: DonorRow): Donor => ({
+  id: r.id,
+  userId: r.user_id ?? undefined,
+  name: r.name,
+  phone: r.phone,
+  area: r.area,
+  monthlyAmount: r.monthly_amount,
+  notes: r.notes ?? undefined,
+  joinedAt: r.joined_at,
+});
+
+const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
+  id: r.id,
+  donorId: r.donor_id,
+  month: r.month,
+  year: r.year,
+  amount: r.amount,
+  status: r.status === "paid" ? "paid" : "unpaid",
+  paidAt: r.paid_at ?? undefined,
+  notes: r.notes ?? undefined,
+});
+
+const mapNotification = (r: NotificationRow): AppNotification => ({
+  id: r.id,
+  donorId: r.donor_id,
+  kind: r.kind === "new_month" ? "new_month" : "payment_confirmed",
+  title: r.title,
+  body: r.body,
+  read: r.read,
+  createdAt: r.created_at,
+});
+
+/** Loads everything the signed-in user is allowed to see (RLS scoped). */
+export async function loadAll() {
+  const [d, p, n] = await Promise.all([
+    supabase.from("donors").select("*").order("created_at", { ascending: false }),
+    supabase.from("payments").select("*"),
+    supabase.from("notifications").select("*").order("created_at", { ascending: false }),
+  ]);
+  donors = (d.data ?? []).map((r) => mapDonor(r as DonorRow));
+  payments = (p.data ?? []).map((r) => mapPayment(r as PaymentRowDb));
+  notifications = (n.data ?? []).map((r) => mapNotification(r as NotificationRow));
+  loaded = true;
+  emit();
+}
+
+export function resetStore() {
+  donors = [];
+  payments = [];
+  notifications = [];
+  loaded = false;
+  emit();
+}
+
+export function useStoreLoaded() {
+  return useSyncExternalStore(subscribe, getLoaded, getLoaded);
+}
 
 export function useDonors() {
   return useSyncExternalStore(subscribe, getDonors, getDonors);
 }
 
-export function useDonor(id: string) {
+export function useDonor(id: string | undefined) {
   return useDonors().find((d) => d.id === id);
+}
+
+export function useDonorByUser(userId: string | undefined) {
+  return useDonors().find((d) => d.userId === userId);
 }
 
 export function usePayments() {
@@ -240,60 +189,101 @@ export function useDonorPayments(donorId: string) {
   return usePayments().filter((p) => p.donorId === donorId);
 }
 
+export function useNotifications(donorId?: string) {
+  const all = useSyncExternalStore(subscribe, getNotifications, getNotifications);
+  return donorId ? all.filter((n) => n.donorId === donorId) : all;
+}
+
 export function sortPayments(list: MonthlyPayment[], desc = true) {
   return [...list].sort((a, b) =>
     desc ? b.year - a.year || b.month - a.month : a.year - b.year || a.month - b.month,
   );
 }
 
-export function addDonor(input: {
+/* ------------------------------------------------------------------ */
+/* Mutations (real CRUD)                                               */
+/* ------------------------------------------------------------------ */
+
+export async function addDonor(input: {
   name: string;
   phone: string;
   area: string;
   monthlyAmount: number;
   notes?: string;
 }) {
-  const donor: Donor = {
-    id: `d${Date.now()}`,
-    ...input,
-    joinedAt: new Date().toISOString().slice(0, 10),
-  };
+  const { data, error } = await supabase
+    .from("donors")
+    .insert({
+      name: input.name,
+      phone: input.phone,
+      area: input.area,
+      monthly_amount: input.monthlyAmount,
+      notes: input.notes ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  const donor = mapDonor(data as DonorRow);
   donors = [donor, ...donors];
-  payments = [...payments, ...seed(donor.id, donor.monthlyAmount, [])];
   emit();
   return donor;
 }
 
-export function updateDonor(
+export async function updateDonor(
   id: string,
   input: { name: string; phone: string; area: string; monthlyAmount: number; notes?: string },
 ) {
-  donors = donors.map((d) => (d.id !== id ? d : { ...d, ...input }));
+  const { error } = await supabase
+    .from("donors")
+    .update({
+      name: input.name,
+      phone: input.phone,
+      area: input.area,
+      monthly_amount: input.monthlyAmount,
+      notes: input.notes ?? null,
+    })
+    .eq("id", id);
+  if (error) throw error;
+
+  await supabase
+    .from("payments")
+    .update({ amount: input.monthlyAmount })
+    .eq("donor_id", id)
+    .eq("status", "unpaid");
+
+  donors = donors.map((d) => (d.id !== id ? d : { ...d, ...input, notes: input.notes }));
   payments = payments.map((p) =>
     p.donorId === id && p.status === "unpaid" ? { ...p, amount: input.monthlyAmount } : p,
   );
   emit();
 }
 
-export function deleteDonor(id: string) {
+export async function deleteDonor(id: string) {
+  const { error } = await supabase.from("donors").delete().eq("id", id);
+  if (error) throw error;
   donors = donors.filter((d) => d.id !== id);
   payments = payments.filter((p) => p.donorId !== id);
+  notifications = notifications.filter((n) => n.donorId !== id);
   emit();
 }
 
-export function setPaymentStatus(paymentId: string, status: PaymentStatus) {
+export async function setPaymentStatus(paymentId: string, status: PaymentStatus) {
   const target = payments.find((p) => p.id === paymentId);
+  if (!target) return;
+  const paidAt = status === "paid" ? (target.paidAt ?? todayISO()) : null;
+
+  const { error } = await supabase
+    .from("payments")
+    .update({ status, paid_at: paidAt })
+    .eq("id", paymentId);
+  if (error) throw error;
+
   payments = payments.map((p) =>
-    p.id !== paymentId
-      ? p
-      : {
-          ...p,
-          status,
-          paidAt: status === "paid" ? (p.paidAt ?? todayISO()) : undefined,
-        },
+    p.id !== paymentId ? p : { ...p, status, paidAt: paidAt ?? undefined },
   );
-  if (target && status === "paid" && target.status !== "paid") {
-    pushNotification({
+
+  if (status === "paid" && target.status !== "paid") {
+    await pushNotification({
       donorId: target.donorId,
       kind: "payment_confirmed",
       title: "تم تأكيد دفعتك",
@@ -303,20 +293,27 @@ export function setPaymentStatus(paymentId: string, status: PaymentStatus) {
   emit();
 }
 
-export function togglePaymentStatus(paymentId: string) {
+export async function togglePaymentStatus(paymentId: string) {
   const p = payments.find((x) => x.id === paymentId);
-  if (p) setPaymentStatus(paymentId, p.status === "paid" ? "unpaid" : "paid");
+  if (p) await setPaymentStatus(paymentId, p.status === "paid" ? "unpaid" : "paid");
 }
 
-export function updatePayment(
+export async function updatePayment(
   paymentId: string,
   input: { amount?: number; paidAt?: string | undefined; notes?: string | undefined },
 ) {
+  const patch: Record<string, unknown> = {};
+  if (input.amount !== undefined) patch['amount'] = input.amount;
+  if ("paidAt" in input) patch['paid_at'] = input.paidAt ?? null;
+  if ("notes" in input) patch['notes'] = input.notes ?? null;
+
+  const { error } = await supabase.from("payments").update(patch).eq("id", paymentId);
+  if (error) throw error;
   payments = payments.map((p) => (p.id !== paymentId ? p : { ...p, ...input }));
   emit();
 }
 
-export function addPayment(input: {
+export async function addPayment(input: {
   donorId: string;
   month: number;
   year: number;
@@ -324,25 +321,133 @@ export function addPayment(input: {
   status: PaymentStatus;
   notes?: string | undefined;
 }) {
-  const payment: MonthlyPayment = {
-    id: `${input.donorId}-${input.year}-${input.month}-${Date.now()}`,
-    donorId: input.donorId,
-    month: input.month,
-    year: input.year,
-    amount: input.amount,
-    status: input.status,
-    paidAt: input.status === "paid" ? todayISO() : undefined,
-    notes: input.notes,
-  };
+  const { data, error } = await supabase
+    .from("payments")
+    .insert({
+      donor_id: input.donorId,
+      month: input.month,
+      year: input.year,
+      amount: input.amount,
+      status: input.status,
+      paid_at: input.status === "paid" ? todayISO() : null,
+      notes: input.notes ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  const payment = mapPayment(data as PaymentRowDb);
   payments = [...payments, payment];
+  if (payment.status === "paid") {
+    await pushNotification({
+      donorId: payment.donorId,
+      kind: "payment_confirmed",
+      title: "تم تأكيد دفعتك",
+      body: `تم تأكيد تسديد ${formatIQD(payment.amount)} عن ${periodLabel(payment.month, payment.year)}.`,
+    });
+  }
   emit();
   return payment;
 }
 
-export function deletePayment(paymentId: string) {
+export async function deletePayment(paymentId: string) {
+  const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+  if (error) throw error;
   payments = payments.filter((p) => p.id !== paymentId);
   emit();
 }
+
+/* ------------------------------------------------------------------ */
+/* Notifications                                                       */
+/* ------------------------------------------------------------------ */
+
+async function pushNotification(input: {
+  donorId: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+}) {
+  const { data, error } = await supabase
+    .from("notifications")
+    .insert({
+      donor_id: input.donorId,
+      kind: input.kind,
+      title: input.title,
+      body: input.body,
+    })
+    .select()
+    .single();
+  if (error) return;
+  notifications = [mapNotification(data as NotificationRow), ...notifications];
+  emit();
+}
+
+export async function markNotificationRead(id: string) {
+  notifications = notifications.map((n) => (n.id !== id ? n : { ...n, read: true }));
+  emit();
+  await supabase.from("notifications").update({ read: true }).eq("id", id);
+}
+
+export async function markAllNotificationsRead(donorId: string) {
+  notifications = notifications.map((n) => (n.donorId !== donorId ? n : { ...n, read: true }));
+  emit();
+  await supabase.from("notifications").update({ read: true }).eq("donor_id", donorId).eq("read", false);
+}
+
+/** Opens the next month for every donor and notifies them in-app. */
+export async function startNewMonth() {
+  const latest = payments.reduce(
+    (acc, p) => (p.year > acc.year || (p.year === acc.year && p.month > acc.month) ? p : acc),
+    { month: CURRENT_MONTH - 1 || 12, year: CURRENT_MONTH - 1 ? CURRENT_YEAR : CURRENT_YEAR - 1 } as {
+      month: number;
+      year: number;
+    },
+  );
+  const month = latest.month === 12 ? 1 : latest.month + 1;
+  const year = latest.month === 12 ? latest.year + 1 : latest.year;
+
+  const missing = donors.filter(
+    (d) => !payments.some((p) => p.donorId === d.id && p.month === month && p.year === year),
+  );
+  if (missing.length === 0) return { month, year, count: 0 };
+
+  const { data, error } = await supabase
+    .from("payments")
+    .insert(
+      missing.map((d) => ({
+        donor_id: d.id,
+        month,
+        year,
+        amount: d.monthlyAmount,
+        status: "unpaid",
+      })),
+    )
+    .select();
+  if (error) throw error;
+
+  payments = [...payments, ...(data ?? []).map((r) => mapPayment(r as PaymentRowDb))];
+
+  const { data: notifRows } = await supabase
+    .from("notifications")
+    .insert(
+      missing.map((d) => ({
+        donor_id: d.id,
+        kind: "new_month",
+        title: `بدأ شهر ${monthLabel(month)} ${year}`,
+        body: `اشتراكك لهذا الشهر ${formatIQD(d.monthlyAmount)} وهو غير مسدد حالياً.`,
+      })),
+    )
+    .select();
+  notifications = [
+    ...(notifRows ?? []).map((r) => mapNotification(r as NotificationRow)),
+    ...notifications,
+  ];
+  emit();
+  return { month, year, count: missing.length };
+}
+
+/* ------------------------------------------------------------------ */
+/* Helpers and derived data                                            */
+/* ------------------------------------------------------------------ */
 
 export function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -395,7 +500,10 @@ export function stats() {
 
 /** Collected vs expected per tracked period, oldest first. */
 export function monthlySeries() {
-  const map = new Map<string, { label: string; month: number; year: number; expected: number; collected: number }>();
+  const map = new Map<
+    string,
+    { label: string; month: number; year: number; expected: number; collected: number }
+  >();
   for (const p of payments) {
     const key = `${p.year}-${String(p.month).padStart(2, "0")}`;
     const entry =
