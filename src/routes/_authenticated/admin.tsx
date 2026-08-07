@@ -31,7 +31,7 @@ import {
   periodLabel,
 } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
       { title: "لوحة تحكم المسؤول — عطاء" },

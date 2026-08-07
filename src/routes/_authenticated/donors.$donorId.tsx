@@ -15,7 +15,7 @@ import {
   sortPayments,
 } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/donors/$donorId")({
+export const Route = createFileRoute("/_authenticated/donors/$donorId")({
   head: () => ({
     meta: [
       { title: "تفاصيل المتبرع — عطاء" },

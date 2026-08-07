@@ -13,7 +13,7 @@ import {
   CURRENT_YEAR,
 } from "@/lib/donors-store";
 
-export const Route = createFileRoute("/donor")({
+export const Route = createFileRoute("/_authenticated/donor")({
   head: () => ({
     meta: [
       { title: "بوابة المتبرع — عطاء" },
