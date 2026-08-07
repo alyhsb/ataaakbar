@@ -27,10 +27,14 @@ function AddDonorPage() {
       <DonorForm
         initial={{ name: "", phone: "", area: "", monthlyAmount: 50000, notes: "" }}
         submitLabel="حفظ المتبرع"
-        onSubmit={(values) => {
-          const donor = addDonor(values);
-          toast.success("تمت إضافة المتبرع بنجاح");
-          navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
+        onSubmit={async (values) => {
+          try {
+            const donor = await addDonor(values);
+            toast.success("تمت إضافة المتبرع بنجاح");
+            navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
+          } catch {
+            toast.error("تعذّر حفظ المتبرع");
+          }
         }}
       />
     </AppShell>

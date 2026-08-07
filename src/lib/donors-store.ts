@@ -302,10 +302,10 @@ export async function updatePayment(
   paymentId: string,
   input: { amount?: number; paidAt?: string | undefined; notes?: string | undefined },
 ) {
-  const patch: Record<string, unknown> = {};
-  if (input.amount !== undefined) patch['amount'] = input.amount;
-  if ("paidAt" in input) patch['paid_at'] = input.paidAt ?? null;
-  if ("notes" in input) patch['notes'] = input.notes ?? null;
+  const patch: { amount?: number; paid_at?: string | null; notes?: string | null } = {};
+  if (input.amount !== undefined) patch.amount = input.amount;
+  if ("paidAt" in input) patch.paid_at = input.paidAt ?? null;
+  if ("notes" in input) patch.notes = input.notes ?? null;
 
   const { error } = await supabase.from("payments").update(patch).eq("id", paymentId);
   if (error) throw error;
