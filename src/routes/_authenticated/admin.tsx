@@ -89,8 +89,8 @@ function AdminDashboard() {
       action={
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => {
-              const r = startNewMonth();
+            onClick={async () => {
+              const r = await startNewMonth();
               if (r.count === 0) {
                 toast.info("تم فتح هذا الشهر مسبقاً");
               } else {
