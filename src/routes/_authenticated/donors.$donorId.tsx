@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Phone, MapPin, CalendarDays, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowRight, Phone, MapPin, CalendarDays, Pencil, KeyRound } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
@@ -13,7 +15,9 @@ import {
   deleteDonor,
   useDonorPayments,
   sortPayments,
+  loadAll,
 } from "@/lib/donors-store";
+import { createDonorAccount, resetDonorPassword } from "@/lib/donor-accounts.functions";
 
 export const Route = createFileRoute("/_authenticated/donors/$donorId")({
   head: () => ({
@@ -35,6 +39,10 @@ function DonorDetails() {
   const donor = useDonor(donorId);
   const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
+  const makeAccount = useServerFn(createDonorAccount);
+  const resetPassword = useServerFn(resetDonorPassword);
+  const [creds, setCreds] = useState<{ username: string; password: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
   if (!donor) {
     return (
@@ -68,8 +76,8 @@ function DonorDetails() {
             name={donor.name}
             variant="button"
             onConfirm={() => {
-              deleteDonor(donor.id);
-              toast.success("تم حذف المتبرع");
+              void deleteDonor(donor.id);
+              toast.success("تم نقل المتبرع إلى سلة المحذوفات");
               navigate({ to: "/donors" });
             }}
           />
@@ -106,6 +114,54 @@ function DonorDetails() {
               {donor.notes}
             </p>
           ) : null}
+
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <KeyRound className="h-4 w-4 text-gold" />
+              حساب الدخول
+            </p>
+            {creds ? (
+              <div className="space-y-1 rounded-lg bg-secondary p-3 text-xs text-ink">
+                <p>
+                  اسم المستخدم: <span className="font-bold">{creds.username}</span>
+                </p>
+                <p>
+                  كلمة المرور المؤقتة: <span className="font-bold">{creds.password}</span>
+                </p>
+                <p className="text-muted-foreground">
+                  سلّم هذه البيانات للمتبرع؛ لن تظهر مرة أخرى. يسجّل الدخول برقم هاتفه.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {donor.userId
+                  ? `لديه حساب باسم المستخدم ${donor.username ?? donor.phone}`
+                  : "لا يملك حساب دخول بعد."}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const result = donor.userId
+                    ? await resetPassword({ data: { donorId: donor.id } })
+                    : await makeAccount({ data: { donorId: donor.id } });
+                  setCreds(result);
+                  await loadAll();
+                  toast.success("تم إنشاء بيانات الدخول");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "تعذّر إنشاء الحساب");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary disabled:opacity-60"
+            >
+              {donor.userId ? "إنشاء كلمة مرور جديدة" : "إنشاء حساب دخول"}
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-5 lg:col-span-2">

@@ -16,6 +16,7 @@ import { Route as AuthenticatedDonorRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDonorsIndexRouteImport } from './routes/_authenticated/donors.index'
 import { Route as AuthenticatedDonorsDonorIdRouteImport } from './routes/_authenticated/donors.$donorId'
 import { Route as AuthenticatedDonorsNewRouteImport } from './routes/_authenticated/donors.new'
+import { Route as AuthenticatedDonorsTrashRouteImport } from './routes/_authenticated/donors.trash'
 import { Route as AuthenticatedDonorsEditDonorIdRouteImport } from './routes/_authenticated/donors.edit.$donorId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -54,6 +55,12 @@ const AuthenticatedDonorsNewRoute = AuthenticatedDonorsNewRouteImport.update({
   path: '/donors/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDonorsTrashRoute =
+  AuthenticatedDonorsTrashRouteImport.update({
+    id: '/donors/trash',
+    path: '/donors/trash',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDonorsEditDonorIdRoute =
   AuthenticatedDonorsEditDonorIdRouteImport.update({
     id: '/donors/edit/$donorId',
@@ -67,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/donor': typeof AuthenticatedDonorRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
+  '/donors/trash': typeof AuthenticatedDonorsTrashRoute
   '/donors/': typeof AuthenticatedDonorsIndexRoute
   '/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -76,6 +84,7 @@ export interface FileRoutesByTo {
   '/donor': typeof AuthenticatedDonorRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
+  '/donors/trash': typeof AuthenticatedDonorsTrashRoute
   '/donors': typeof AuthenticatedDonorsIndexRoute
   '/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -87,6 +96,7 @@ export interface FileRoutesById {
   '/_authenticated/donor': typeof AuthenticatedDonorRoute
   '/_authenticated/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/_authenticated/donors/new': typeof AuthenticatedDonorsNewRoute
+  '/_authenticated/donors/trash': typeof AuthenticatedDonorsTrashRoute
   '/_authenticated/donors/': typeof AuthenticatedDonorsIndexRoute
   '/_authenticated/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/donor'
     | '/donors/$donorId'
     | '/donors/new'
+    | '/donors/trash'
     | '/donors/'
     | '/donors/edit/$donorId'
   fileRoutesByTo: FileRoutesByTo
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/donor'
     | '/donors/$donorId'
     | '/donors/new'
+    | '/donors/trash'
     | '/donors'
     | '/donors/edit/$donorId'
   id:
@@ -117,6 +129,7 @@ export interface FileRouteTypes {
     | '/_authenticated/donor'
     | '/_authenticated/donors/$donorId'
     | '/_authenticated/donors/new'
+    | '/_authenticated/donors/trash'
     | '/_authenticated/donors/'
     | '/_authenticated/donors/edit/$donorId'
   fileRoutesById: FileRoutesById
@@ -177,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDonorsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/donors/trash': {
+      id: '/_authenticated/donors/trash'
+      path: '/donors/trash'
+      fullPath: '/donors/trash'
+      preLoaderRoute: typeof AuthenticatedDonorsTrashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/donors/edit/$donorId': {
       id: '/_authenticated/donors/edit/$donorId'
       path: '/donors/edit/$donorId'
@@ -192,6 +212,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDonorRoute: typeof AuthenticatedDonorRoute
   AuthenticatedDonorsDonorIdRoute: typeof AuthenticatedDonorsDonorIdRoute
   AuthenticatedDonorsNewRoute: typeof AuthenticatedDonorsNewRoute
+  AuthenticatedDonorsTrashRoute: typeof AuthenticatedDonorsTrashRoute
   AuthenticatedDonorsIndexRoute: typeof AuthenticatedDonorsIndexRoute
   AuthenticatedDonorsEditDonorIdRoute: typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -201,6 +222,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDonorRoute: AuthenticatedDonorRoute,
   AuthenticatedDonorsDonorIdRoute: AuthenticatedDonorsDonorIdRoute,
   AuthenticatedDonorsNewRoute: AuthenticatedDonorsNewRoute,
+  AuthenticatedDonorsTrashRoute: AuthenticatedDonorsTrashRoute,
   AuthenticatedDonorsIndexRoute: AuthenticatedDonorsIndexRoute,
   AuthenticatedDonorsEditDonorIdRoute: AuthenticatedDonorsEditDonorIdRoute,
 }
@@ -215,13 +237,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
