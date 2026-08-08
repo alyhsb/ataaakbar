@@ -25,18 +25,18 @@ export const Route = createFileRoute("/")({
   component: LoginPage,
 });
 
-function LoginPage() {
-  const navigate = useNavigate();
-  const { ready, userId, role } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [identifier, setIdentifier] = useState("");
 function toLoginEmail(value: string) {
   const trimmed = value.trim();
   if (trimmed.includes("@")) return trimmed;
   return `${trimmed.replace(/\D/g, "")}@ataa.local`;
 }
 
+function LoginPage() {
+  const navigate = useNavigate();
+  const { ready, userId, role } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -55,7 +55,10 @@ function toLoginEmail(value: string) {
     setBusy(true);
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: toLoginEmail(identifier),
+          password,
+        });
         if (error) throw error;
       } else {
         const { data, error } = await supabase.auth.signUp({
@@ -182,19 +185,35 @@ function toLoginEmail(value: string) {
                 </div>
               </>
             ) : null}
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-ink">
-                البريد الإلكتروني
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
+            {mode === "signin" ? (
+              <div>
+                <label htmlFor="identifier" className="mb-1.5 block text-sm font-medium text-ink">
+                  رقم الهاتف أو البريد الإلكتروني
+                </label>
+                <input
+                  id="identifier"
+                  required
+                  inputMode="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-ink">
+                  البريد الإلكتروني
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            )}
             <div>
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-ink">
                 كلمة المرور
