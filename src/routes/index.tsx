@@ -30,6 +30,13 @@ function LoginPage() {
   const { ready, userId, role } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
+function toLoginEmail(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.includes("@")) return trimmed;
+  return `${trimmed.replace(/\D/g, "")}@ataa.local`;
+}
+
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
