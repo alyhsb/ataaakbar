@@ -536,16 +536,17 @@ export function donorStatus(d: Donor): PaymentStatus {
 }
 
 export function stats() {
+  const active = donors.filter((d) => !d.deletedAt);
   const expectedTotal = payments.reduce((s, p) => s + p.amount, 0);
   const collected = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
-  const expectedMonthly = donors.reduce((s, d) => s + d.monthlyAmount, 0);
-  const paidThisMonth = donors.filter((d) => donorStatus(d) === "paid").length;
+  const expectedMonthly = active.reduce((s, d) => s + d.monthlyAmount, 0);
+  const paidThisMonth = active.filter((d) => donorStatus(d) === "paid").length;
   const unpaidCount = payments.filter((p) => p.status === "unpaid").length;
-  const unpaidDonors = donors.filter((d) =>
+  const unpaidDonors = active.filter((d) =>
     payments.some((p) => p.donorId === d.id && p.status === "unpaid"),
   ).length;
   return {
-    total: donors.length,
+    total: active.length,
     collected,
     expectedTotal,
     remaining: Math.max(expectedTotal - collected, 0),
@@ -575,16 +576,18 @@ export function monthlySeries() {
 
 /** Donor payment status split for the current month. */
 export function statusSplit() {
-  const paid = donors.filter((d) => donorStatus(d) === "paid").length;
+  const active = donors.filter((d) => !d.deletedAt);
+  const paid = active.filter((d) => donorStatus(d) === "paid").length;
   return [
     { name: "مدفوع", value: paid },
-    { name: "غير مدفوع", value: donors.length - paid },
+    { name: "غير مدفوع", value: active.length - paid },
   ];
 }
 
 /** Top donors by total paid amount. */
 export function topDonors(limit = 5) {
   return donors
+    .filter((d) => !d.deletedAt)
     .map((d) => ({
       name: d.name,
       total: payments
