@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, UserPlus, LogOut, Heart } from "lucide-react";
+import { LayoutDashboard, Users, UserPlus, LogOut, Heart, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAuth, signOut } from "@/lib/auth";
 
@@ -7,6 +7,7 @@ const adminNav = [
   { to: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
   { to: "/donors", label: "قائمة المتبرعين", icon: Users },
   { to: "/donors/new", label: "إضافة متبرع", icon: UserPlus },
+  { to: "/donors/trash", label: "المتبرعون المحذوفون", icon: Trash2 },
 ] as const;
 
 const donorNav = [{ to: "/donor", label: "بوابة المتبرع", icon: Heart }] as const;

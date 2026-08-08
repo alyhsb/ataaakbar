@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PaymentStatus = "paid" | "unpaid";
-export type NotificationKind = "new_month" | "payment_confirmed";
+export type NotificationKind = "new_month" | "payment_confirmed" | "reminder";
 
 export type AppNotification = {
   id: string;
@@ -34,6 +34,8 @@ export type Donor = {
   monthlyAmount: number;
   joinedAt: string;
   notes?: string | undefined;
+  username?: string | undefined;
+  deletedAt?: string | undefined;
 };
 
 export const MONTH_NAMES: string[] = [
@@ -90,6 +92,8 @@ type DonorRow = {
   monthly_amount: number;
   notes: string | null;
   joined_at: string;
+  username: string | null;
+  deleted_at: string | null;
 };
 type PaymentRowDb = {
   id: string;
@@ -120,6 +124,8 @@ const mapDonor = (r: DonorRow): Donor => ({
   monthlyAmount: r.monthly_amount,
   notes: r.notes ?? undefined,
   joinedAt: r.joined_at,
+  username: r.username ?? undefined,
+  deletedAt: r.deleted_at ?? undefined,
 });
 
 const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
@@ -136,7 +142,8 @@ const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
 const mapNotification = (r: NotificationRow): AppNotification => ({
   id: r.id,
   donorId: r.donor_id,
-  kind: r.kind === "new_month" ? "new_month" : "payment_confirmed",
+  kind:
+    r.kind === "new_month" ? "new_month" : r.kind === "reminder" ? "reminder" : "payment_confirmed",
   title: r.title,
   body: r.body,
   read: r.read,
@@ -169,12 +176,20 @@ export function useStoreLoaded() {
   return useSyncExternalStore(subscribe, getLoaded, getLoaded);
 }
 
-export function useDonors() {
+export function useAllDonors() {
   return useSyncExternalStore(subscribe, getDonors, getDonors);
 }
 
+export function useDonors() {
+  return useAllDonors().filter((d) => !d.deletedAt);
+}
+
+export function useDeletedDonors() {
+  return useAllDonors().filter((d) => d.deletedAt);
+}
+
 export function useDonor(id: string | undefined) {
-  return useDonors().find((d) => d.id === id);
+  return useAllDonors().find((d) => d.id === id);
 }
 
 export function useDonorByUser(userId: string | undefined) {
@@ -258,7 +273,24 @@ export async function updateDonor(
   emit();
 }
 
+/** Soft delete: moves the donor to the recycle bin. */
 export async function deleteDonor(id: string) {
+  const deletedAt = new Date().toISOString();
+  const { error } = await supabase.from("donors").update({ deleted_at: deletedAt }).eq("id", id);
+  if (error) throw error;
+  donors = donors.map((d) => (d.id !== id ? d : { ...d, deletedAt }));
+  emit();
+}
+
+export async function restoreDonor(id: string) {
+  const { error } = await supabase.from("donors").update({ deleted_at: null }).eq("id", id);
+  if (error) throw error;
+  donors = donors.map((d) => (d.id !== id ? d : { ...d, deletedAt: undefined }));
+  emit();
+}
+
+/** Permanently removes the donor and every related record. */
+export async function purgeDonor(id: string) {
   const { error } = await supabase.from("donors").delete().eq("id", id);
   if (error) throw error;
   donors = donors.filter((d) => d.id !== id);
@@ -286,8 +318,8 @@ export async function setPaymentStatus(paymentId: string, status: PaymentStatus)
     await pushNotification({
       donorId: target.donorId,
       kind: "payment_confirmed",
-      title: "تم تأكيد دفعتك",
-      body: `تم تأكيد تسديد ${formatIQD(target.amount)} عن ${periodLabel(target.month, target.year)}.`,
+      title: `تم استلام تبرعك بمبلغ ${formatIQD(target.amount)}`,
+      body: `تم استلام تبرعك بمبلغ ${formatIQD(target.amount)} عن ${periodLabel(target.month, target.year)}. شكراً لدعمك.`,
     });
   }
   emit();
@@ -341,8 +373,8 @@ export async function addPayment(input: {
     await pushNotification({
       donorId: payment.donorId,
       kind: "payment_confirmed",
-      title: "تم تأكيد دفعتك",
-      body: `تم تأكيد تسديد ${formatIQD(payment.amount)} عن ${periodLabel(payment.month, payment.year)}.`,
+      title: `تم استلام تبرعك بمبلغ ${formatIQD(payment.amount)}`,
+      body: `تم استلام تبرعك بمبلغ ${formatIQD(payment.amount)} عن ${periodLabel(payment.month, payment.year)}. شكراً لدعمك.`,
     });
   }
   emit();
@@ -406,7 +438,9 @@ export async function startNewMonth() {
   const year = latest.month === 12 ? latest.year + 1 : latest.year;
 
   const missing = donors.filter(
-    (d) => !payments.some((p) => p.donorId === d.id && p.month === month && p.year === year),
+    (d) =>
+      !d.deletedAt &&
+      !payments.some((p) => p.donorId === d.id && p.month === month && p.year === year),
   );
   if (missing.length === 0) return { month, year, count: 0 };
 
@@ -445,6 +479,30 @@ export async function startNewMonth() {
   return { month, year, count: missing.length };
 }
 
+/** Sends the monthly due reminder to every active donor. */
+export async function sendReminderToAll() {
+  const active = donors.filter((d) => !d.deletedAt);
+  if (active.length === 0) return 0;
+  const { data, error } = await supabase
+    .from("notifications")
+    .insert(
+      active.map((d) => ({
+        donor_id: d.id,
+        kind: "reminder",
+        title: "تذكير بالتبرع الشهري",
+        body: "حان موعد تبرعك الشهري.",
+      })),
+    )
+    .select();
+  if (error) throw error;
+  notifications = [
+    ...(data ?? []).map((r) => mapNotification(r as NotificationRow)),
+    ...notifications,
+  ];
+  emit();
+  return active.length;
+}
+
 /* ------------------------------------------------------------------ */
 /* Helpers and derived data                                            */
 /* ------------------------------------------------------------------ */
@@ -478,16 +536,17 @@ export function donorStatus(d: Donor): PaymentStatus {
 }
 
 export function stats() {
+  const active = donors.filter((d) => !d.deletedAt);
   const expectedTotal = payments.reduce((s, p) => s + p.amount, 0);
   const collected = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
-  const expectedMonthly = donors.reduce((s, d) => s + d.monthlyAmount, 0);
-  const paidThisMonth = donors.filter((d) => donorStatus(d) === "paid").length;
+  const expectedMonthly = active.reduce((s, d) => s + d.monthlyAmount, 0);
+  const paidThisMonth = active.filter((d) => donorStatus(d) === "paid").length;
   const unpaidCount = payments.filter((p) => p.status === "unpaid").length;
-  const unpaidDonors = donors.filter((d) =>
+  const unpaidDonors = active.filter((d) =>
     payments.some((p) => p.donorId === d.id && p.status === "unpaid"),
   ).length;
   return {
-    total: donors.length,
+    total: active.length,
     collected,
     expectedTotal,
     remaining: Math.max(expectedTotal - collected, 0),
@@ -517,16 +576,18 @@ export function monthlySeries() {
 
 /** Donor payment status split for the current month. */
 export function statusSplit() {
-  const paid = donors.filter((d) => donorStatus(d) === "paid").length;
+  const active = donors.filter((d) => !d.deletedAt);
+  const paid = active.filter((d) => donorStatus(d) === "paid").length;
   return [
     { name: "مدفوع", value: paid },
-    { name: "غير مدفوع", value: donors.length - paid },
+    { name: "غير مدفوع", value: active.length - paid },
   ];
 }
 
 /** Top donors by total paid amount. */
 export function topDonors(limit = 5) {
   return donors
+    .filter((d) => !d.deletedAt)
     .map((d) => ({
       name: d.name,
       total: payments

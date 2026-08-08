@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellRing, CalendarPlus, CheckCircle2 } from "lucide-react";
+import { Bell, BellRing, CalendarPlus, CheckCircle2, AlarmClock } from "lucide-react";
 import {
   useNotifications,
   markAllNotificationsRead,
@@ -60,6 +60,8 @@ export function NotificationBell({ donorId }: { donorId: string }) {
                   >
                     {n.kind === "new_month" ? (
                       <CalendarPlus className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                    ) : n.kind === "reminder" ? (
+                      <AlarmClock className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                     ) : (
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     )}

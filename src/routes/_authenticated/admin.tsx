@@ -29,6 +29,7 @@ import {
   monthLabel,
   startNewMonth,
   periodLabel,
+  sendReminderToAll,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -100,6 +101,20 @@ function AdminDashboard() {
             className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
           >
             بدء شهر جديد
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const count = await sendReminderToAll();
+                if (count === 0) toast.info("لا يوجد متبرعون لإرسال التذكير إليهم");
+                else toast.success(`تم إرسال التذكير إلى ${count} متبرع`);
+              } catch {
+                toast.error("تعذّر إرسال التذكير");
+              }
+            }}
+            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
+          >
+            إرسال تذكير
           </button>
           <Link
             to="/donors/new"

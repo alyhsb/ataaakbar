@@ -15,10 +15,12 @@ export function DeleteDonorButton({
   name,
   onConfirm,
   variant = "icon",
+  permanent = false,
 }: {
   name: string;
   onConfirm: () => void;
   variant?: "icon" | "button";
+  permanent?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -41,9 +43,11 @@ export function DeleteDonorButton({
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent dir="rtl" className="text-right">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف المتبرع</AlertDialogTitle>
+            <AlertDialogTitle>{permanent ? "حذف نهائي" : "حذف المتبرع"}</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف «{name}» وجميع سجلات دفعاته نهائياً. لا يمكن التراجع عن هذا الإجراء.
+              {permanent
+                ? `سيتم حذف «${name}» وجميع سجلات دفعاته نهائياً. لا يمكن التراجع عن هذا الإجراء.`
+                : `سيتم نقل «${name}» إلى سلة المحذوفات، ويمكنك استعادته في أي وقت.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-start">
@@ -51,7 +55,7 @@ export function DeleteDonorButton({
               onClick={onConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              نعم، احذف
+              {permanent ? "نعم، احذف نهائياً" : "نعم، انقله إلى المحذوفات"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>

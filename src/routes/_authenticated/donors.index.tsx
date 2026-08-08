@@ -136,8 +136,8 @@ function DonorsList() {
                     <DeleteDonorButton
                       name={d.name}
                       onConfirm={() => {
-                        deleteDonor(d.id);
-                        toast.success("تم حذف المتبرع");
+                        void deleteDonor(d.id);
+                        toast.success("تم نقل المتبرع إلى سلة المحذوفات");
                       }}
                     />
                   </div>

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           area: string
           created_at: string
+          deleted_at: string | null
           id: string
           joined_at: string
           monthly_amount: number
@@ -25,10 +26,12 @@ export type Database = {
           notes: string | null
           phone: string
           user_id: string | null
+          username: string | null
         }
         Insert: {
           area?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           joined_at?: string
           monthly_amount?: number
@@ -36,10 +39,12 @@ export type Database = {
           notes?: string | null
           phone?: string
           user_id?: string | null
+          username?: string | null
         }
         Update: {
           area?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           joined_at?: string
           monthly_amount?: number
@@ -47,6 +52,7 @@ export type Database = {
           notes?: string | null
           phone?: string
           user_id?: string | null
+          username?: string | null
         }
         Relationships: []
       }
