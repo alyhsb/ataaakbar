@@ -21,10 +21,12 @@ export type Database = {
           deleted_at: string | null
           id: string
           joined_at: string
+          location: string
           monthly_amount: number
           name: string
           notes: string | null
           phone: string
+          profile_completed: boolean
           user_id: string | null
           username: string | null
         }
@@ -34,10 +36,12 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           joined_at?: string
+          location?: string
           monthly_amount?: number
           name: string
           notes?: string | null
           phone?: string
+          profile_completed?: boolean
           user_id?: string | null
           username?: string | null
         }
@@ -47,10 +51,12 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           joined_at?: string
+          location?: string
           monthly_amount?: number
           name?: string
           notes?: string | null
           phone?: string
+          profile_completed?: boolean
           user_id?: string | null
           username?: string | null
         }
@@ -140,24 +146,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          area: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          location: string | null
           phone: string | null
         }
         Insert: {
+          area?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          location?: string | null
           phone?: string | null
         }
         Update: {
+          area?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          location?: string | null
           phone?: string | null
         }
         Relationships: []
