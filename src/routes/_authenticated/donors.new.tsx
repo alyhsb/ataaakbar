@@ -25,7 +25,7 @@ function AddDonorPage() {
   return (
     <AppShell title="إضافة متبرع" subtitle="سجّل متبرعاً جديداً في قائمة الموكب">
       <DonorForm
-        initial={{ name: "", phone: "", area: "", monthlyAmount: 50000, notes: "" }}
+        initial={{ name: "", phone: "", area: "", location: "", monthlyAmount: 50000, notes: "" }}
         submitLabel="حفظ المتبرع"
         onSubmit={async (values) => {
           try {
