@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
@@ -18,12 +19,12 @@ import {
 export const Route = createFileRoute("/_authenticated/donor")({
   head: () => ({
     meta: [
-      { title: "بوابة المتبرع — عطاء" },
+      { title: "بوابة المتبرع — عطاء الأكبر" },
       {
         name: "description",
         content: "تابع اشتراكك الشهري في الموكب الحسيني وسجل دفعاتك السابقة بكل وضوح.",
       },
-      { property: "og:title", content: "بوابة المتبرع — عطاء" },
+      { property: "og:title", content: "بوابة المتبرع — عطاء الأكبر" },
       { property: "og:description", content: "لوحة المتبرع لمتابعة الاشتراك الشهري والدفعات." },
     ],
   }),
@@ -35,6 +36,11 @@ function DonorDashboard() {
   const loaded = useStoreLoaded();
   const donor = useDonorByUser(userId ?? undefined);
   const payments = useDonorPayments(donor?.id ?? "");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (donor && !donor.profileCompleted) navigate({ to: "/complete-profile", replace: true });
+  }, [donor, navigate]);
 
   if (!donor) {
     return (

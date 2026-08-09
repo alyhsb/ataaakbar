@@ -7,12 +7,12 @@ import { useDonor, updateDonor } from "@/lib/donors-store";
 export const Route = createFileRoute("/_authenticated/donors/edit/$donorId")({
   head: () => ({
     meta: [
-      { title: "تعديل بيانات المتبرع — عطاء" },
+      { title: "تعديل بيانات المتبرع — عطاء الأكبر" },
       {
         name: "description",
         content: "عدّل اسم المتبرع ورقم هاتفه ومبلغ تبرعه الشهري والملاحظات الخاصة به.",
       },
-      { property: "og:title", content: "تعديل بيانات المتبرع — عطاء" },
+      { property: "og:title", content: "تعديل بيانات المتبرع — عطاء الأكبر" },
       { property: "og:description", content: "تحديث بيانات أحد متبرعي الموكب الحسيني." },
     ],
   }),
@@ -41,6 +41,7 @@ function EditDonorPage() {
           name: donor.name,
           phone: donor.phone,
           area: donor.area,
+          location: donor.location,
           monthlyAmount: donor.monthlyAmount,
           notes: donor.notes ?? "",
         }}

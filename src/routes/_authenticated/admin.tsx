@@ -35,13 +35,13 @@ import {
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "لوحة تحكم المسؤول — عطاء" },
+      { title: "لوحة تحكم المسؤول — عطاء الأكبر" },
       {
         name: "description",
         content:
           "نظرة عامة على تبرعات الموكب: عدد المتبرعين، المتوقع شهرياً، المحصّل، المتبقي، والمتبرعون غير المسددين.",
       },
-      { property: "og:title", content: "لوحة تحكم المسؤول — عطاء" },
+      { property: "og:title", content: "لوحة تحكم المسؤول — عطاء الأكبر" },
       { property: "og:description", content: "إحصائيات ورسوم بيانية لتبرعات الموكب الحسيني." },
     ],
   }),

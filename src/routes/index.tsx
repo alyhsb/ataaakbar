@@ -5,17 +5,18 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/lib/auth";
+import { APP_NAME } from "@/lib/app-info";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "عطاء — تسجيل الدخول لإدارة تبرعات الموكب" },
+      { title: "عطاء الأكبر — تسجيل الدخول لإدارة تبرعات الموكب" },
       {
         name: "description",
         content:
-          "منصة عطاء لإدارة التبرعات الشهرية للموكب الحسيني: تسجيل المتبرعين ومتابعة الدفعات الشهرية بسهولة.",
+          "منصة عطاء الأكبر لإدارة التبرعات الشهرية للموكب الحسيني: تسجيل المتبرعين ومتابعة الدفعات الشهرية بسهولة.",
       },
-      { property: "og:title", content: "عطاء — إدارة التبرعات الشهرية للموكب الحسيني" },
+      { property: "og:title", content: "عطاء الأكبر — إدارة التبرعات الشهرية للموكب الحسيني" },
       {
         property: "og:description",
         content: "سجّل الدخول لإدارة المتبرعين ومتابعة الدفعات الشهرية للموكب.",
@@ -98,7 +99,7 @@ function LoginPage() {
           <span className="gradient-gold flex h-11 w-11 items-center justify-center rounded-xl font-display text-xl font-bold text-gold-foreground">
             ع
           </span>
-          <span className="font-display text-2xl font-bold text-primary-foreground">عطاء</span>
+          <span className="font-display text-2xl font-bold text-primary-foreground">{APP_NAME}</span>
         </div>
         <div>
           <h2 className="max-w-md font-display text-4xl leading-tight font-bold text-primary-foreground">
@@ -119,7 +120,7 @@ function LoginPage() {
             <span className="gradient-gold flex h-10 w-10 items-center justify-center rounded-xl font-display text-lg font-bold text-gold-foreground">
               ع
             </span>
-            <span className="font-display text-xl font-bold text-ink">عطاء</span>
+            <span className="font-display text-xl font-bold text-ink">{APP_NAME}</span>
           </div>
 
           <h1 className="font-display text-2xl font-bold text-ink">

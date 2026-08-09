@@ -17,17 +17,21 @@ import {
   sortPayments,
   loadAll,
 } from "@/lib/donors-store";
-import { createDonorAccount, resetDonorPassword } from "@/lib/donor-accounts.functions";
+import {
+  createDonorAccount,
+  resetDonorPassword,
+  adminUpdateDonorAccount,
+} from "@/lib/donor-accounts.functions";
 
 export const Route = createFileRoute("/_authenticated/donors/$donorId")({
   head: () => ({
     meta: [
-      { title: "تفاصيل المتبرع — عطاء" },
+      { title: "تفاصيل المتبرع — عطاء الأكبر" },
       {
         name: "description",
         content: "بيانات المتبرع وسجل دفعاته الشهرية مع إمكانية تحديث حالة كل دفعة.",
       },
-      { property: "og:title", content: "تفاصيل المتبرع — عطاء" },
+      { property: "og:title", content: "تفاصيل المتبرع — عطاء الأكبر" },
       { property: "og:description", content: "سجل الدفعات الشهرية لمتبرع الموكب." },
     ],
   }),
@@ -41,7 +45,10 @@ function DonorDetails() {
   const navigate = useNavigate();
   const makeAccount = useServerFn(createDonorAccount);
   const resetPassword = useServerFn(resetDonorPassword);
+  const updateAccount = useServerFn(adminUpdateDonorAccount);
   const [creds, setCreds] = useState<{ username: string; password: string } | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   if (!donor) {
@@ -106,6 +113,7 @@ function DonorDetails() {
           <dl className="space-y-3 border-t border-border pt-4 text-sm">
             <Row icon={Phone} label="الهاتف" value={donor.phone} />
             <Row icon={MapPin} label="المنطقة" value={donor.area} />
+            {donor.location ? <Row icon={MapPin} label="العنوان" value={donor.location} /> : null}
             <Row icon={CalendarDays} label="تاريخ الإضافة" value={donor.joinedAt} />
           </dl>
 
@@ -161,6 +169,51 @@ function DonorDetails() {
             >
               {donor.userId ? "إنشاء كلمة مرور جديدة" : "إنشاء حساب دخول"}
             </button>
+
+            {donor.userId ? (
+              <div className="space-y-2 border-t border-border pt-3">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="بريد إلكتروني جديد"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                />
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="كلمة مرور محددة (اختياري)"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  disabled={busy || (!newEmail.trim() && !newPassword)}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await updateAccount({
+                        data: {
+                          donorId: donor.id,
+                          ...(newEmail.trim() ? { email: newEmail.trim() } : {}),
+                          ...(newPassword ? { password: newPassword } : {}),
+                        },
+                      });
+                      setNewEmail("");
+                      setNewPassword("");
+                      toast.success("تم تحديث بيانات الحساب");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "تعذّر تحديث الحساب");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary disabled:opacity-60"
+                >
+                  حفظ بيانات الحساب
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 

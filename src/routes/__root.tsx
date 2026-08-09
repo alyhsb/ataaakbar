@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { initAuth } from "@/lib/auth";
+import { initTheme, themeBootstrapScript } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -79,12 +80,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "عطاء — إدارة تبرعات الموكب الحسيني" },
+      { title: "عطاء الأكبر — إدارة تبرعات الموكب الحسيني" },
       {
         name: "description",
-        content: "عطاء: نظام عربي لإدارة التبرعات الشهرية للموكب الحسيني.",
+        content: "عطاء الأكبر: نظام عربي لإدارة التبرعات الشهرية للموكب الحسيني.",
       },
-      { property: "og:title", content: "عطاء — إدارة تبرعات الموكب الحسيني" },
+      { property: "og:title", content: "عطاء الأكبر — إدارة تبرعات الموكب الحسيني" },
       {
         property: "og:description",
         content: "إدارة المتبرعين ومتابعة الدفعات الشهرية للموكب الحسيني.",
@@ -117,6 +118,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         <HeadContent />
       </head>
       <body>
@@ -132,6 +134,7 @@ function RootComponent() {
 
   useEffect(() => {
     initAuth();
+    initTheme();
   }, []);
 
   return (

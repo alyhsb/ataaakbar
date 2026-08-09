@@ -7,12 +7,12 @@ import { addDonor } from "@/lib/donors-store";
 export const Route = createFileRoute("/_authenticated/donors/new")({
   head: () => ({
     meta: [
-      { title: "إضافة متبرع جديد — عطاء" },
+      { title: "إضافة متبرع جديد — عطاء الأكبر" },
       {
         name: "description",
         content: "أضف متبرعاً جديداً إلى الموكب وحدد مبلغ التبرع الشهري والملاحظات.",
       },
-      { property: "og:title", content: "إضافة متبرع جديد — عطاء" },
+      { property: "og:title", content: "إضافة متبرع جديد — عطاء الأكبر" },
       { property: "og:description", content: "تسجيل متبرع جديد ضمن تبرعات الموكب الشهرية." },
     ],
   }),
@@ -25,7 +25,7 @@ function AddDonorPage() {
   return (
     <AppShell title="إضافة متبرع" subtitle="سجّل متبرعاً جديداً في قائمة الموكب">
       <DonorForm
-        initial={{ name: "", phone: "", area: "", monthlyAmount: 50000, notes: "" }}
+        initial={{ name: "", phone: "", area: "", location: "", monthlyAmount: 50000, notes: "" }}
         submitLabel="حفظ المتبرع"
         onSubmit={async (values) => {
           try {

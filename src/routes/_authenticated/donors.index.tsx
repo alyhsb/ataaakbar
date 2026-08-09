@@ -16,12 +16,12 @@ import {
 export const Route = createFileRoute("/_authenticated/donors/")({
   head: () => ({
     meta: [
-      { title: "قائمة المتبرعين — عطاء" },
+      { title: "قائمة المتبرعين — عطاء الأكبر" },
       {
         name: "description",
         content: "استعرض جميع متبرعي الموكب مع مبالغ اشتراكهم الشهري وحالة الدفع.",
       },
-      { property: "og:title", content: "قائمة المتبرعين — عطاء" },
+      { property: "og:title", content: "قائمة المتبرعين — عطاء الأكبر" },
       { property: "og:description", content: "جميع متبرعي الموكب وحالة دفعاتهم الشهرية." },
     ],
   }),
