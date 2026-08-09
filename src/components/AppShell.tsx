@@ -2,6 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Users, UserPlus, LogOut, Heart, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAuth, signOut } from "@/lib/auth";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { APP_NAME, APP_TAGLINE } from "@/lib/app-info";
 
 const adminNav = [
   { to: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -35,8 +37,8 @@ export function AppShell({
             ع
           </span>
           <span>
-            <span className="block font-display text-xl font-bold text-primary-foreground">عطاء</span>
-            <span className="block text-[11px] text-primary-foreground/70">إدارة تبرعات الموكب</span>
+            <span className="block font-display text-xl font-bold text-primary-foreground">{APP_NAME}</span>
+            <span className="block text-[11px] text-primary-foreground/70">{APP_TAGLINE}</span>
           </span>
         </Link>
 
@@ -61,7 +63,7 @@ export function AppShell({
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-auto hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10 lg:flex"
+          className="mt-auto flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10"
         >
           <LogOut className="h-4 w-4" />
           تسجيل الخروج
@@ -74,7 +76,10 @@ export function AppShell({
             <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">{title}</h1>
             {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
           </div>
-          {action}
+          <div className="flex flex-wrap items-center gap-2">
+            {action}
+            <SettingsPanel />
+          </div>
         </header>
         {children}
       </main>
