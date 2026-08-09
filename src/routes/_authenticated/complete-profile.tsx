@@ -51,8 +51,14 @@ function CompleteProfilePage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!donor || busy) return;
-    if (name.trim().length < 3) return toast.error("يرجى إدخال الاسم الكامل");
-    if (!/^[\d\s+-]{7,20}$/.test(phone.trim())) return toast.error("رقم هاتف غير صالح");
+    if (name.trim().length < 3) {
+      toast.error("يرجى إدخال الاسم الكامل");
+      return;
+    }
+    if (!/^[\d\s+-]{7,20}$/.test(phone.trim())) {
+      toast.error("رقم هاتف غير صالح");
+      return;
+    }
     setBusy(true);
     try {
       if (password) {
