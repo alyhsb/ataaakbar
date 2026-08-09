@@ -8,12 +8,12 @@ import { useDeletedDonors, formatIQD, restoreDonor, purgeDonor } from "@/lib/don
 export const Route = createFileRoute("/_authenticated/donors/trash")({
   head: () => ({
     meta: [
-      { title: "المتبرعون المحذوفون — عطاء" },
+      { title: "المتبرعون المحذوفون — عطاء الأكبر" },
       {
         name: "description",
         content: "سلة المحذوفات: استعد المتبرعين المحذوفين أو احذفهم نهائياً من سجلات الموكب.",
       },
-      { property: "og:title", content: "المتبرعون المحذوفون — عطاء" },
+      { property: "og:title", content: "المتبرعون المحذوفون — عطاء الأكبر" },
       { property: "og:description", content: "استعادة أو حذف نهائي للمتبرعين المحذوفين." },
     ],
   }),
