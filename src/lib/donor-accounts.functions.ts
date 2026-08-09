@@ -93,3 +93,47 @@ export const resetDonorPassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { username: donor.username ?? "", password };
   });
+
+/** Admin-only: updates a donor account's email and/or password. */
+export const adminUpdateDonorAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        donorId: z.string().uuid(),
+        email: z.string().email().max(255).optional(),
+        password: z.string().min(6).max(72).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: donor } = await supabaseAdmin
+      .from("donors")
+      .select("id, user_id")
+      .eq("id", data.donorId)
+      .maybeSingle();
+    if (!donor?.user_id) throw new Error("لا يوجد حساب لهذا المتبرع");
+
+    const patch: { email?: string; password?: string; email_confirm?: boolean } = {};
+    if (data.email) {
+      patch.email = data.email;
+      patch.email_confirm = true;
+    }
+    if (data.password) patch.password = data.password;
+    if (Object.keys(patch).length === 0) return { ok: true };
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(donor.user_id, patch);
+    if (error) throw new Error(error.message);
+
+    if (data.email) {
+      await supabaseAdmin.from("profiles").update({ email: data.email }).eq("id", donor.user_id);
+    }
+    return { ok: true };
+  });

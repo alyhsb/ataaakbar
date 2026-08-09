@@ -294,14 +294,22 @@ export async function updateDonor(
 /** Donor-editable fields (name and amount stay admin-only, enforced in the database). */
 export async function updateOwnDonorInfo(
   id: string,
-  input: { phone?: string; area?: string; location?: string; profileCompleted?: boolean },
+  input: {
+    name?: string;
+    phone?: string;
+    area?: string;
+    location?: string;
+    profileCompleted?: boolean;
+  },
 ) {
   const patch: {
+    name?: string;
     phone?: string;
     area?: string;
     location?: string;
     profile_completed?: boolean;
   } = {};
+  if (input.name !== undefined) patch.name = input.name;
   if (input.phone !== undefined) patch.phone = input.phone;
   if (input.area !== undefined) patch.area = input.area;
   if (input.location !== undefined) patch.location = input.location;
@@ -314,6 +322,7 @@ export async function updateOwnDonorInfo(
       ? d
       : {
           ...d,
+          name: input.name ?? d.name,
           phone: input.phone ?? d.phone,
           area: input.area ?? d.area,
           location: input.location ?? d.location,
