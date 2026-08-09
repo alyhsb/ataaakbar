@@ -296,11 +296,16 @@ export async function updateOwnDonorInfo(
   id: string,
   input: { phone?: string; area?: string; location?: string; profileCompleted?: boolean },
 ) {
-  const patch: Record<string, unknown> = {};
-  if (input.phone !== undefined) patch['phone'] = input.phone;
-  if (input.area !== undefined) patch['area'] = input.area;
-  if (input.location !== undefined) patch['location'] = input.location;
-  if (input.profileCompleted !== undefined) patch['profile_completed'] = input.profileCompleted;
+  const patch: {
+    phone?: string;
+    area?: string;
+    location?: string;
+    profile_completed?: boolean;
+  } = {};
+  if (input.phone !== undefined) patch.phone = input.phone;
+  if (input.area !== undefined) patch.area = input.area;
+  if (input.location !== undefined) patch.location = input.location;
+  if (input.profileCompleted !== undefined) patch.profile_completed = input.profileCompleted;
 
   const { error } = await supabase.from("donors").update(patch).eq("id", id);
   if (error) throw error;
