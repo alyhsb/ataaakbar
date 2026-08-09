@@ -31,11 +31,13 @@ export type Donor = {
   name: string;
   phone: string;
   area: string;
+  location: string;
   monthlyAmount: number;
   joinedAt: string;
   notes?: string | undefined;
   username?: string | undefined;
   deletedAt?: string | undefined;
+  profileCompleted: boolean;
 };
 
 export const MONTH_NAMES: string[] = [
@@ -89,11 +91,13 @@ type DonorRow = {
   name: string;
   phone: string;
   area: string;
+  location?: string | null;
   monthly_amount: number;
   notes: string | null;
   joined_at: string;
   username: string | null;
   deleted_at: string | null;
+  profile_completed?: boolean | null;
 };
 type PaymentRowDb = {
   id: string;
@@ -121,11 +125,13 @@ const mapDonor = (r: DonorRow): Donor => ({
   name: r.name,
   phone: r.phone,
   area: r.area,
+  location: r.location ?? "",
   monthlyAmount: r.monthly_amount,
   notes: r.notes ?? undefined,
   joinedAt: r.joined_at,
   username: r.username ?? undefined,
   deletedAt: r.deleted_at ?? undefined,
+  profileCompleted: r.profile_completed ?? true,
 });
 
 const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
@@ -223,6 +229,7 @@ export async function addDonor(input: {
   name: string;
   phone: string;
   area: string;
+  location?: string;
   monthlyAmount: number;
   notes?: string;
 }) {
@@ -232,6 +239,7 @@ export async function addDonor(input: {
       name: input.name,
       phone: input.phone,
       area: input.area,
+      location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
       notes: input.notes ?? null,
     })
@@ -246,7 +254,14 @@ export async function addDonor(input: {
 
 export async function updateDonor(
   id: string,
-  input: { name: string; phone: string; area: string; monthlyAmount: number; notes?: string },
+  input: {
+    name: string;
+    phone: string;
+    area: string;
+    location?: string;
+    monthlyAmount: number;
+    notes?: string;
+  },
 ) {
   const { error } = await supabase
     .from("donors")
@@ -254,6 +269,7 @@ export async function updateDonor(
       name: input.name,
       phone: input.phone,
       area: input.area,
+      location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
       notes: input.notes ?? null,
     })
@@ -266,9 +282,38 @@ export async function updateDonor(
     .eq("donor_id", id)
     .eq("status", "unpaid");
 
-  donors = donors.map((d) => (d.id !== id ? d : { ...d, ...input, notes: input.notes }));
+  donors = donors.map((d) =>
+    d.id !== id ? d : { ...d, ...input, location: input.location ?? "", notes: input.notes },
+  );
   payments = payments.map((p) =>
     p.donorId === id && p.status === "unpaid" ? { ...p, amount: input.monthlyAmount } : p,
+  );
+  emit();
+}
+
+/** Donor-editable fields (name and amount stay admin-only, enforced in the database). */
+export async function updateOwnDonorInfo(
+  id: string,
+  input: { phone?: string; area?: string; location?: string; profileCompleted?: boolean },
+) {
+  const patch: Record<string, unknown> = {};
+  if (input.phone !== undefined) patch['phone'] = input.phone;
+  if (input.area !== undefined) patch['area'] = input.area;
+  if (input.location !== undefined) patch['location'] = input.location;
+  if (input.profileCompleted !== undefined) patch['profile_completed'] = input.profileCompleted;
+
+  const { error } = await supabase.from("donors").update(patch).eq("id", id);
+  if (error) throw error;
+  donors = donors.map((d) =>
+    d.id !== id
+      ? d
+      : {
+          ...d,
+          phone: input.phone ?? d.phone,
+          area: input.area ?? d.area,
+          location: input.location ?? d.location,
+          profileCompleted: input.profileCompleted ?? d.profileCompleted,
+        },
   );
   emit();
 }
