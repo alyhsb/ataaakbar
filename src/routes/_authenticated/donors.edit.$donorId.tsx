@@ -41,6 +41,7 @@ function EditDonorPage() {
           name: donor.name,
           phone: donor.phone,
           area: donor.area,
+          location: donor.location,
           monthlyAmount: donor.monthlyAmount,
           notes: donor.notes ?? "",
         }}
