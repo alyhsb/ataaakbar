@@ -5,6 +5,7 @@ export type DonorFormValues = {
   name: string;
   phone: string;
   area: string;
+  location: string;
   monthlyAmount: number;
   notes: string;
 };
@@ -54,6 +55,7 @@ export function DonorForm({
     if (name.length < 3 || name.length > 100) e.name = "الاسم يجب أن يكون بين ٣ و ١٠٠ حرف";
     if (!/^[\d\s+-]{7,20}$/.test(phone)) e.phone = "رقم هاتف غير صالح";
     if (values.area.trim().length > 60) e.area = "اسم المنطقة طويل جداً";
+    if (values.location.trim().length > 120) e.location = "العنوان طويل جداً";
     if (!Number.isFinite(values.monthlyAmount) || values.monthlyAmount < 1000)
       e.monthlyAmount = "أقل مبلغ هو ١٠٠٠ دينار";
     if (values.notes.length > 500) e.notes = "الملاحظات يجب ألا تتجاوز ٥٠٠ حرف";
@@ -73,6 +75,7 @@ export function DonorForm({
           name: form.name.trim(),
           phone: form.phone.trim(),
           area: form.area.trim(),
+          location: form.location.trim(),
           monthlyAmount: Number(form.monthlyAmount),
           notes: form.notes.trim(),
         });
@@ -104,6 +107,15 @@ export function DonorForm({
             maxLength={60}
             onChange={(e) => set("area", e.target.value)}
             placeholder="مثال: الكاظمية"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="العنوان (اختياري)" error={errors.location}>
+          <input
+            value={form.location}
+            maxLength={120}
+            onChange={(e) => set("location", e.target.value)}
+            placeholder="مثال: الهاشمية - حي المعلمين"
             className={inputCls}
           />
         </Field>
