@@ -246,8 +246,12 @@ export async function addDonor(input: {
   area: string;
   location?: string;
   monthlyAmount: number;
+  dueDay?: number;
   notes?: string;
 }) {
+  if (donors.some((d) => !d.deletedAt && samePhone(d.phone, input.phone))) {
+    throw new Error("رقم الهاتف مسجّل لمتبرع آخر بالفعل");
+  }
   const { data, error } = await supabase
     .from("donors")
     .insert({
@@ -256,11 +260,12 @@ export async function addDonor(input: {
       area: input.area,
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      due_day: input.dueDay ?? 5,
       notes: input.notes ?? null,
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asAppError(error, "duplicate");
   const donor = mapDonor(data as DonorRow);
   donors = [donor, ...donors];
   emit();
@@ -275,9 +280,13 @@ export async function updateDonor(
     area: string;
     location?: string;
     monthlyAmount: number;
+    dueDay?: number;
     notes?: string;
   },
 ) {
+  if (donors.some((d) => d.id !== id && !d.deletedAt && samePhone(d.phone, input.phone))) {
+    throw new Error("رقم الهاتف مسجّل لمتبرع آخر بالفعل");
+  }
   const { error } = await supabase
     .from("donors")
     .update({
@@ -286,10 +295,11 @@ export async function updateDonor(
       area: input.area,
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      due_day: input.dueDay ?? 5,
       notes: input.notes ?? null,
     })
     .eq("id", id);
-  if (error) throw error;
+  if (error) throw asAppError(error, "duplicate");
 
   await supabase
     .from("payments")
@@ -298,7 +308,16 @@ export async function updateDonor(
     .eq("status", "unpaid");
 
   donors = donors.map((d) =>
-    d.id !== id ? d : { ...d, ...input, location: input.location ?? "", notes: input.notes },
+    d.id !== id
+      ? d
+      : {
+          ...d,
+          ...input,
+          location: input.location ?? "",
+          dueDay: input.dueDay ?? d.dueDay,
+          notes: input.notes,
+          lastProfileUpdateAt: new Date().toISOString(),
+        },
   );
   payments = payments.map((p) =>
     p.donorId === id && p.status === "unpaid" ? { ...p, amount: input.monthlyAmount } : p,
