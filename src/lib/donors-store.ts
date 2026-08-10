@@ -23,21 +23,26 @@ export type MonthlyPayment = {
   status: PaymentStatus;
   paidAt?: string | undefined;
   notes?: string | undefined;
+  txnCode?: string | undefined;
 };
 
 export type Donor = {
   id: string;
   userId?: string | undefined;
+  code?: string | undefined;
   name: string;
   phone: string;
   area: string;
   location: string;
   monthlyAmount: number;
+  dueDay: number;
   joinedAt: string;
   notes?: string | undefined;
   username?: string | undefined;
   deletedAt?: string | undefined;
   profileCompleted: boolean;
+  lastLoginAt?: string | undefined;
+  lastProfileUpdateAt?: string | undefined;
 };
 
 export const MONTH_NAMES: string[] = [
@@ -88,16 +93,20 @@ const getLoaded = () => loaded;
 type DonorRow = {
   id: string;
   user_id: string | null;
+  donor_code?: string | null;
   name: string;
   phone: string;
   area: string;
   location?: string | null;
   monthly_amount: number;
+  due_day?: number | null;
   notes: string | null;
   joined_at: string;
   username: string | null;
   deleted_at: string | null;
   profile_completed?: boolean | null;
+  last_login_at?: string | null;
+  last_profile_update_at?: string | null;
 };
 type PaymentRowDb = {
   id: string;
@@ -108,6 +117,7 @@ type PaymentRowDb = {
   status: string;
   paid_at: string | null;
   notes: string | null;
+  txn_code?: string | null;
 };
 type NotificationRow = {
   id: string;
@@ -122,16 +132,20 @@ type NotificationRow = {
 const mapDonor = (r: DonorRow): Donor => ({
   id: r.id,
   userId: r.user_id ?? undefined,
+  code: r.donor_code ?? undefined,
   name: r.name,
   phone: r.phone,
   area: r.area,
   location: r.location ?? "",
   monthlyAmount: r.monthly_amount,
+  dueDay: r.due_day ?? 5,
   notes: r.notes ?? undefined,
   joinedAt: r.joined_at,
   username: r.username ?? undefined,
   deletedAt: r.deleted_at ?? undefined,
   profileCompleted: r.profile_completed ?? true,
+  lastLoginAt: r.last_login_at ?? undefined,
+  lastProfileUpdateAt: r.last_profile_update_at ?? undefined,
 });
 
 const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
@@ -143,6 +157,7 @@ const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
   status: r.status === "paid" ? "paid" : "unpaid",
   paidAt: r.paid_at ?? undefined,
   notes: r.notes ?? undefined,
+  txnCode: r.txn_code ?? undefined,
 });
 
 const mapNotification = (r: NotificationRow): AppNotification => ({
@@ -225,14 +240,43 @@ export function sortPayments(list: MonthlyPayment[], desc = true) {
 /* Mutations (real CRUD)                                               */
 /* ------------------------------------------------------------------ */
 
+/** Compares two phone numbers ignoring formatting characters. */
+export function samePhone(a: string, b: string) {
+  const norm = (v: string) => v.replace(/\D/g, "");
+  return norm(a) !== "" && norm(a) === norm(b);
+}
+
+function isOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+/** Turns any thrown value into a clear Arabic message. */
+export function errorMessage(err: unknown, fallback = "تعذّر إتمام العملية") {
+  if (isOffline()) return "لا يوجد اتصال بالإنترنت، ولم يتم تنفيذ العملية. تحقّق من الاتصال ثم أعد المحاولة.";
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+  if (/duplicate key|unique constraint|donors_unique_active_phone/i.test(raw))
+    return "رقم الهاتف مسجّل لمتبرع آخر بالفعل";
+  if (/fetch|network|Failed to fetch|NetworkError/i.test(raw))
+    return "تعذّر الاتصال بالخادم، ولم يتم تنفيذ العملية. تحقّق من الاتصال ثم أعد المحاولة.";
+  return raw || fallback;
+}
+
+function asAppError(err: { message?: string } | null, _kind: "duplicate") {
+  return new Error(errorMessage(new Error(err?.message ?? "")));
+}
+
 export async function addDonor(input: {
   name: string;
   phone: string;
   area: string;
   location?: string;
   monthlyAmount: number;
+  dueDay?: number;
   notes?: string;
 }) {
+  if (donors.some((d) => !d.deletedAt && samePhone(d.phone, input.phone))) {
+    throw new Error("رقم الهاتف مسجّل لمتبرع آخر بالفعل");
+  }
   const { data, error } = await supabase
     .from("donors")
     .insert({
@@ -241,11 +285,12 @@ export async function addDonor(input: {
       area: input.area,
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      due_day: input.dueDay ?? 5,
       notes: input.notes ?? null,
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw asAppError(error, "duplicate");
   const donor = mapDonor(data as DonorRow);
   donors = [donor, ...donors];
   emit();
@@ -260,9 +305,13 @@ export async function updateDonor(
     area: string;
     location?: string;
     monthlyAmount: number;
+    dueDay?: number;
     notes?: string;
   },
 ) {
+  if (donors.some((d) => d.id !== id && !d.deletedAt && samePhone(d.phone, input.phone))) {
+    throw new Error("رقم الهاتف مسجّل لمتبرع آخر بالفعل");
+  }
   const { error } = await supabase
     .from("donors")
     .update({
@@ -271,10 +320,11 @@ export async function updateDonor(
       area: input.area,
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      due_day: input.dueDay ?? 5,
       notes: input.notes ?? null,
     })
     .eq("id", id);
-  if (error) throw error;
+  if (error) throw asAppError(error, "duplicate");
 
   await supabase
     .from("payments")
@@ -283,7 +333,16 @@ export async function updateDonor(
     .eq("status", "unpaid");
 
   donors = donors.map((d) =>
-    d.id !== id ? d : { ...d, ...input, location: input.location ?? "", notes: input.notes },
+    d.id !== id
+      ? d
+      : {
+          ...d,
+          ...input,
+          location: input.location ?? "",
+          dueDay: input.dueDay ?? d.dueDay,
+          notes: input.notes,
+          lastProfileUpdateAt: new Date().toISOString(),
+        },
   );
   payments = payments.map((p) =>
     p.donorId === id && p.status === "unpaid" ? { ...p, amount: input.monthlyAmount } : p,
@@ -655,4 +714,88 @@ export function topDonors(limit = 5) {
     }))
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
+}
+
+/* ------------------------------------------------------------------ */
+/* Due dates, overdue and activity                                     */
+/* ------------------------------------------------------------------ */
+
+export function currentPayment(donorId: string) {
+  return payments.find(
+    (p) => p.donorId === donorId && p.month === CURRENT_MONTH && p.year === CURRENT_YEAR,
+  );
+}
+
+/** Date of the donor's most recent paid donation, if any. */
+export function lastDonationDate(donorId: string): string | undefined {
+  const paid = payments
+    .filter((p) => p.donorId === donorId && p.status === "paid")
+    .map((p) => p.paidAt ?? `${p.year}-${String(p.month).padStart(2, "0")}-01`)
+    .sort();
+  return paid.length ? paid[paid.length - 1] : undefined;
+}
+
+function dueDateFor(dueDay: number, month: number, year: number) {
+  const day = Math.min(Math.max(dueDay || 5, 1), 28);
+  return new Date(year, month - 1, day);
+}
+
+export function formatDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** The donor's next unpaid due date (ISO date string). */
+export function nextDueDate(d: Donor): string {
+  const thisMonth = dueDateFor(d.dueDay, CURRENT_MONTH, CURRENT_YEAR);
+  const paidThisMonth = currentPayment(d.id)?.status === "paid";
+  if (!paidThisMonth) return formatDate(thisMonth);
+  const nextMonth = CURRENT_MONTH === 12 ? 1 : CURRENT_MONTH + 1;
+  const nextYear = CURRENT_MONTH === 12 ? CURRENT_YEAR + 1 : CURRENT_YEAR;
+  return formatDate(dueDateFor(d.dueDay, nextMonth, nextYear));
+}
+
+/** Days past the due date for an unpaid current month, 0 when not overdue. */
+export function overdueDays(d: Donor): number {
+  if (currentPayment(d.id)?.status === "paid") return 0;
+  const due = dueDateFor(d.dueDay, CURRENT_MONTH, CURRENT_YEAR);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today.getTime() - due.getTime()) / 86_400_000);
+  return diff > 0 ? diff : 0;
+}
+
+export function isOverdue(d: Donor) {
+  return overdueDays(d) > 0;
+}
+
+/** Records the donor's sign-in time (best effort). */
+export async function recordDonorLogin(userId: string) {
+  const donor = donors.find((d) => d.userId === userId);
+  if (!donor) return;
+  const at = new Date().toISOString();
+  const { error } = await supabase.from("donors").update({ last_login_at: at }).eq("id", donor.id);
+  if (error) return;
+  donors = donors.map((d) => (d.id === donor.id ? { ...d, lastLoginAt: at } : d));
+  emit();
+}
+
+/** Headline numbers for the current month only. */
+export function monthStats() {
+  const active = donors.filter((d) => !d.deletedAt);
+  const monthPayments = payments.filter(
+    (p) => p.month === CURRENT_MONTH && p.year === CURRENT_YEAR,
+  );
+  const collected = monthPayments
+    .filter((p) => p.status === "paid")
+    .reduce((s, p) => s + p.amount, 0);
+  const expected = active.reduce((s, d) => s + d.monthlyAmount, 0);
+  const paid = active.filter((d) => donorStatus(d) === "paid").length;
+  return {
+    activeDonors: active.length,
+    paid,
+    unpaid: active.length - paid,
+    overdue: active.filter((d) => isOverdue(d)).length,
+    collected,
+    remaining: Math.max(expected - collected, 0),
+  };
 }

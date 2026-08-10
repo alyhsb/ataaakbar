@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, Wallet, CheckCircle2, AlertTriangle, TrendingUp, ArrowLeft } from "lucide-react";
+import {
+  Users,
+  Wallet,
+  CheckCircle2,
+  AlertTriangle,
+  TrendingUp,
+  ArrowLeft,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Area,
@@ -16,10 +24,12 @@ import {
   YAxis,
 } from "recharts";
 import { AppShell, StatusPill } from "@/components/AppShell";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   useDonors,
   usePayments,
   stats,
+  monthStats,
   monthlySeries,
   statusSplit,
   topDonors,
@@ -30,6 +40,8 @@ import {
   startNewMonth,
   periodLabel,
   sendReminderToAll,
+  useStoreLoaded,
+  errorMessage,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -53,7 +65,9 @@ const COLORS = ["var(--color-primary)", "var(--color-destructive)"];
 function AdminDashboard() {
   const donors = useDonors();
   usePayments();
+  const loaded = useStoreLoaded();
   const s = stats();
+  const m = monthStats();
   const series = monthlySeries();
   const split = statusSplit();
   const top = topDonors();
@@ -83,39 +97,65 @@ function AdminDashboard() {
     },
   ];
 
+  const quick = [
+    { label: "متبرعون نشطون", value: String(m.activeDonors), tone: "text-primary" },
+    { label: "مدفوع هذا الشهر", value: String(m.paid), tone: "text-primary" },
+    { label: "غير مدفوع هذا الشهر", value: String(m.unpaid), tone: "text-destructive" },
+    { label: "متأخرون", value: String(m.overdue), tone: "text-destructive" },
+    { label: "المحصّل هذا الشهر", value: formatIQD(m.collected), tone: "text-primary" },
+    { label: "المتبقي هذا الشهر", value: formatIQD(m.remaining), tone: "text-destructive" },
+  ];
+
   return (
     <AppShell
       title="لوحة التحكم"
       subtitle="نظرة شاملة على تبرعات الموكب الحسيني"
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={async () => {
-              const r = await startNewMonth();
-              if (r.count === 0) {
-                toast.info("تم فتح هذا الشهر مسبقاً");
-              } else {
-                toast.success(`تم بدء ${periodLabel(r.month, r.year)} وإشعار ${r.count} متبرع`);
+          <ConfirmDialog
+            title="بدء شهر جديد"
+            description="سيتم فتح دفعات الشهر الجديد لجميع المتبرعين النشطين وإشعارهم داخل التطبيق."
+            confirmLabel="نعم، ابدأ الشهر"
+            onConfirm={async () => {
+              try {
+                const r = await startNewMonth();
+                if (r.count === 0) toast.info("تم فتح هذا الشهر مسبقاً");
+                else toast.success(`تم بدء ${periodLabel(r.month, r.year)} وإشعار ${r.count} متبرع`);
+              } catch (err) {
+                toast.error(errorMessage(err, "تعذّر بدء الشهر الجديد"));
               }
             }}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
-          >
-            بدء شهر جديد
-          </button>
-          <button
-            onClick={async () => {
+            trigger={(open) => (
+              <button
+                onClick={open}
+                className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
+              >
+                بدء شهر جديد
+              </button>
+            )}
+          />
+          <ConfirmDialog
+            title="إرسال تذكير للجميع"
+            description="سيصل إشعار «حان موعد تبرعك الشهري» إلى جميع المتبرعين النشطين."
+            confirmLabel="نعم، أرسل التذكير"
+            onConfirm={async () => {
               try {
                 const count = await sendReminderToAll();
                 if (count === 0) toast.info("لا يوجد متبرعون لإرسال التذكير إليهم");
                 else toast.success(`تم إرسال التذكير إلى ${count} متبرع`);
-              } catch {
-                toast.error("تعذّر إرسال التذكير");
+              } catch (err) {
+                toast.error(errorMessage(err, "تعذّر إرسال التذكير"));
               }
             }}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
-          >
-            إرسال تذكير
-          </button>
+            trigger={(open) => (
+              <button
+                onClick={open}
+                className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary shadow-[var(--shadow-soft)]"
+              >
+                إرسال تذكير
+              </button>
+            )}
+          />
           <Link
             to="/donors/new"
             className="gradient-gold rounded-lg px-4 py-2 text-sm font-semibold text-gold-foreground shadow-[var(--shadow-soft)]"
@@ -125,6 +165,27 @@ function AdminDashboard() {
         </div>
       }
     >
+      {!loaded ? (
+        <div className="surface-card mb-5 flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          جارٍ تحميل بيانات لوحة التحكم…
+        </div>
+      ) : null}
+
+      <section className="surface-card mb-5 p-5">
+        <h2 className="mb-4 font-display text-base font-bold text-ink">
+          نظرة سريعة — {monthLabel(CURRENT_MONTH)}
+        </h2>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          {quick.map((q) => (
+            <div key={q.label} className="rounded-xl bg-secondary/60 p-4">
+              <p className="text-xs text-muted-foreground">{q.label}</p>
+              <p className={`mt-2 font-display text-lg font-bold ${q.tone}`}>{q.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((c) => (
           <div key={c.label} className="surface-card p-5">
@@ -302,11 +363,19 @@ function AdminDashboard() {
               <li key={d.id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <Link to="/donors/$donorId" params={{ donorId: d.id }} className="min-w-0">
                   <p className="truncate text-sm font-semibold text-ink">{d.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatIQD(d.monthlyAmount)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {d.code ? `${d.code} • ` : ""}
+                    {formatIQD(d.monthlyAmount)}
+                  </p>
                 </Link>
                 <StatusPill status={donorStatus(d)} />
               </li>
             ))}
+            {loaded && recent.length === 0 ? (
+              <li className="px-5 py-8 text-center text-sm text-muted-foreground">
+                لا يوجد متبرعون بعد. ابدأ بإضافة متبرع جديد.
+              </li>
+            ) : null}
           </ul>
         </div>
       </div>

@@ -14,6 +14,9 @@ import {
   sortPayments,
   CURRENT_MONTH,
   CURRENT_YEAR,
+  nextDueDate,
+  overdueDays,
+  lastDonationDate,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/donor")({
@@ -55,10 +58,12 @@ function DonorDashboard() {
   const paid = payments.filter((p) => p.status === "paid");
   const unpaid = payments.filter((p) => p.status === "unpaid");
   const current = payments.find((p) => p.month === CURRENT_MONTH && p.year === CURRENT_YEAR);
+  const over = overdueDays(donor);
+  const lastDonation = lastDonationDate(donor.id);
 
   return (
     <AppShell
-      title={`أهلاً، ${donor.name}`}
+      title={`السلام عليكم، ${donor.name}`}
       subtitle="متابعة اشتراكك الشهري في الموكب الحسيني"
       action={<NotificationBell donorId={donor.id} />}
     >
@@ -70,19 +75,28 @@ function DonorDashboard() {
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-primary-foreground/80">
           <span>شهر {monthLabel(CURRENT_MONTH)}:</span>
           <StatusPill status={current?.status ?? "unpaid"} />
+          {over > 0 ? (
+            <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-destructive-foreground">
+              متأخر {over} يوم
+            </span>
+          ) : null}
           <span className="text-primary-foreground/50">•</span>
           <span>
             الحالة العامة: {unpaid.length === 0 ? "منتظم" : `${unpaid.length} دفعة غير مسددة`}
           </span>
         </div>
+        <p className="mt-3 text-sm text-primary-foreground/80">
+          موعد استحقاقك القادم: <span className="font-semibold">{nextDueDate(donor)}</span>
+        </p>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="عدد الأشهر المدفوعة" value={`${paid.length} شهر`} />
         <Stat
           label="إجمالي تبرعاتك"
           value={formatIQD(paid.reduce((s, p) => s + p.amount, 0))}
         />
+        <Stat label="آخر تبرع" value={lastDonation ?? "لا يوجد"} />
         <Stat label="تاريخ الانضمام" value={donor.joinedAt} />
       </div>
 
@@ -95,6 +109,11 @@ function DonorDashboard() {
             <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-ink">{periodLabel(p.month, p.year)}</p>
+                {p.txnCode ? (
+                  <p className="font-mono text-[11px] text-muted-foreground" dir="ltr">
+                    {p.txnCode}
+                  </p>
+                ) : null}
                 <p className="text-xs text-muted-foreground">
                   {p.status === "paid"
                     ? `تم التسديد في ${p.paidAt ?? "—"}`
@@ -110,6 +129,11 @@ function DonorDashboard() {
               </div>
             </li>
           ))}
+          {payments.length === 0 ? (
+            <li className="px-5 py-10 text-center text-sm text-muted-foreground">
+              لا توجد دفعات مسجّلة بعد.
+            </li>
+          ) : null}
         </ul>
       </div>
 

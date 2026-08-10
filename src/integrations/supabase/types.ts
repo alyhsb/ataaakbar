@@ -19,8 +19,12 @@ export type Database = {
           area: string
           created_at: string
           deleted_at: string | null
+          donor_code: string | null
+          due_day: number
           id: string
           joined_at: string
+          last_login_at: string | null
+          last_profile_update_at: string | null
           location: string
           monthly_amount: number
           name: string
@@ -34,8 +38,12 @@ export type Database = {
           area?: string
           created_at?: string
           deleted_at?: string | null
+          donor_code?: string | null
+          due_day?: number
           id?: string
           joined_at?: string
+          last_login_at?: string | null
+          last_profile_update_at?: string | null
           location?: string
           monthly_amount?: number
           name: string
@@ -49,8 +57,12 @@ export type Database = {
           area?: string
           created_at?: string
           deleted_at?: string | null
+          donor_code?: string | null
+          due_day?: number
           id?: string
           joined_at?: string
+          last_login_at?: string | null
+          last_profile_update_at?: string | null
           location?: string
           monthly_amount?: number
           name?: string
@@ -100,6 +112,21 @@ export type Database = {
           },
         ]
       }
+      payment_counters: {
+        Row: {
+          last_value: number
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          year: number
+        }
+        Update: {
+          last_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -110,6 +137,7 @@ export type Database = {
           notes: string | null
           paid_at: string | null
           status: string
+          txn_code: string | null
           year: number
         }
         Insert: {
@@ -121,6 +149,7 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           status?: string
+          txn_code?: string | null
           year: number
         }
         Update: {
@@ -132,6 +161,7 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           status?: string
+          txn_code?: string | null
           year?: number
         }
         Relationships: [

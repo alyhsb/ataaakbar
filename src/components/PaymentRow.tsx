@@ -2,15 +2,18 @@ import { useState } from "react";
 import { Check, X, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { StatusPill } from "@/components/AppShell";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   formatIQD,
   periodLabel,
   setPaymentStatus,
   updatePayment,
+  todayISO,
+  errorMessage,
   type MonthlyPayment,
 } from "@/lib/donors-store";
 
-export function PaymentRow({ payment }: { payment: MonthlyPayment }) {
+export function PaymentRow({ payment, donorName }: { payment: MonthlyPayment; donorName?: string }) {
   const [openNotes, setOpenNotes] = useState(false);
   const [notes, setNotes] = useState(payment.notes ?? "");
   const paid = payment.status === "paid";
@@ -22,6 +25,11 @@ export function PaymentRow({ payment }: { payment: MonthlyPayment }) {
           <p className="text-sm font-semibold text-ink">
             {periodLabel(payment.month, payment.year)}
           </p>
+          {payment.txnCode ? (
+            <p className="font-mono text-[11px] text-muted-foreground" dir="ltr">
+              {payment.txnCode}
+            </p>
+          ) : null}
           <p className="text-xs text-muted-foreground">
             {paid ? `تاريخ الدفع: ${payment.paidAt ?? "—"}` : "لم يتم التسديد بعد"}
           </p>
@@ -30,20 +38,44 @@ export function PaymentRow({ payment }: { payment: MonthlyPayment }) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-primary">{formatIQD(payment.amount)}</span>
           <StatusPill status={payment.status} />
-          <button
-            onClick={() => {
-              setPaymentStatus(payment.id, paid ? "unpaid" : "paid");
-              toast.success(paid ? "تم تعليم الدفعة كغير مدفوعة" : "تم تسجيل الدفعة كمدفوعة");
-            }}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+          <ConfirmDialog
+            title={paid ? "إلغاء تسجيل التبرع" : "تأكيد تسجيل التبرع"}
+            description={
               paid
-                ? "border border-border text-muted-foreground hover:bg-secondary"
-                : "gradient-emerald text-primary-foreground"
-            }`}
-          >
-            {paid ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
-            {paid ? "إلغاء الدفع" : "تعليم كمدفوع"}
-          </button>
+                ? "هل أنت متأكد من إلغاء تسجيل هذا التبرع؟"
+                : "هل أنت متأكد من تسجيل هذا التبرع؟"
+            }
+            details={[
+              ...(donorName ? [{ label: "المتبرع", value: donorName }] : []),
+              { label: "المبلغ", value: formatIQD(payment.amount) },
+              { label: "الشهر", value: periodLabel(payment.month, payment.year) },
+              { label: "التاريخ", value: payment.paidAt ?? todayISO() },
+              ...(payment.txnCode ? [{ label: "رقم العملية", value: payment.txnCode }] : []),
+            ]}
+            confirmLabel={paid ? "نعم، ألغِ التسجيل" : "نعم، سجّل التبرع"}
+            destructive={paid}
+            onConfirm={async () => {
+              try {
+                await setPaymentStatus(payment.id, paid ? "unpaid" : "paid");
+                toast.success(paid ? "تم تعليم الدفعة كغير مدفوعة" : "تم تسجيل التبرع بنجاح");
+              } catch (err) {
+                toast.error(errorMessage(err, "تعذّر تحديث حالة الدفعة"));
+              }
+            }}
+            trigger={(open) => (
+              <button
+                onClick={open}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  paid
+                    ? "border border-border text-muted-foreground hover:bg-secondary"
+                    : "gradient-emerald text-primary-foreground"
+                }`}
+              >
+                {paid ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                {paid ? "إلغاء الدفع" : "تعليم كمدفوع"}
+              </button>
+            )}
+          />
           <button
             onClick={() => setOpenNotes((v) => !v)}
             aria-label="ملاحظات الدفعة"
@@ -83,13 +115,13 @@ export function PaymentRow({ payment }: { payment: MonthlyPayment }) {
             </label>
           </div>
           <label className="block text-xs font-medium text-muted-foreground">
-            ملاحظات
+            ملاحظات هذه الدفعة
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink"
-              placeholder="ملاحظة حول هذه الدفعة"
+              placeholder="ملاحظة خاصة بهذه الدفعة فقط"
             />
           </label>
           <div className="flex justify-end gap-2">
@@ -100,10 +132,14 @@ export function PaymentRow({ payment }: { payment: MonthlyPayment }) {
               إغلاق
             </button>
             <button
-              onClick={() => {
-                updatePayment(payment.id, { notes: notes.trim() || undefined });
-                setOpenNotes(false);
-                toast.success("تم حفظ بيانات الدفعة");
+              onClick={async () => {
+                try {
+                  await updatePayment(payment.id, { notes: notes.trim() || undefined });
+                  setOpenNotes(false);
+                  toast.success("تم حفظ بيانات الدفعة");
+                } catch (err) {
+                  toast.error(errorMessage(err, "تعذّر حفظ بيانات الدفعة"));
+                }
               }}
               className="gradient-emerald rounded-lg px-3 py-1.5 text-xs font-semibold text-primary-foreground"
             >
