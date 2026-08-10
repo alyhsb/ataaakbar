@@ -23,21 +23,26 @@ export type MonthlyPayment = {
   status: PaymentStatus;
   paidAt?: string | undefined;
   notes?: string | undefined;
+  txnCode?: string | undefined;
 };
 
 export type Donor = {
   id: string;
   userId?: string | undefined;
+  code?: string | undefined;
   name: string;
   phone: string;
   area: string;
   location: string;
   monthlyAmount: number;
+  dueDay: number;
   joinedAt: string;
   notes?: string | undefined;
   username?: string | undefined;
   deletedAt?: string | undefined;
   profileCompleted: boolean;
+  lastLoginAt?: string | undefined;
+  lastProfileUpdateAt?: string | undefined;
 };
 
 export const MONTH_NAMES: string[] = [
@@ -88,16 +93,20 @@ const getLoaded = () => loaded;
 type DonorRow = {
   id: string;
   user_id: string | null;
+  donor_code?: string | null;
   name: string;
   phone: string;
   area: string;
   location?: string | null;
   monthly_amount: number;
+  due_day?: number | null;
   notes: string | null;
   joined_at: string;
   username: string | null;
   deleted_at: string | null;
   profile_completed?: boolean | null;
+  last_login_at?: string | null;
+  last_profile_update_at?: string | null;
 };
 type PaymentRowDb = {
   id: string;
@@ -108,6 +117,7 @@ type PaymentRowDb = {
   status: string;
   paid_at: string | null;
   notes: string | null;
+  txn_code?: string | null;
 };
 type NotificationRow = {
   id: string;
@@ -122,16 +132,20 @@ type NotificationRow = {
 const mapDonor = (r: DonorRow): Donor => ({
   id: r.id,
   userId: r.user_id ?? undefined,
+  code: r.donor_code ?? undefined,
   name: r.name,
   phone: r.phone,
   area: r.area,
   location: r.location ?? "",
   monthlyAmount: r.monthly_amount,
+  dueDay: r.due_day ?? 5,
   notes: r.notes ?? undefined,
   joinedAt: r.joined_at,
   username: r.username ?? undefined,
   deletedAt: r.deleted_at ?? undefined,
   profileCompleted: r.profile_completed ?? true,
+  lastLoginAt: r.last_login_at ?? undefined,
+  lastProfileUpdateAt: r.last_profile_update_at ?? undefined,
 });
 
 const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
@@ -143,6 +157,7 @@ const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
   status: r.status === "paid" ? "paid" : "unpaid",
   paidAt: r.paid_at ?? undefined,
   notes: r.notes ?? undefined,
+  txnCode: r.txn_code ?? undefined,
 });
 
 const mapNotification = (r: NotificationRow): AppNotification => ({
