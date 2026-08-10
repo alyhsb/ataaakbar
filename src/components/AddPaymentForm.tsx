@@ -1,20 +1,27 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   MONTH_NAMES,
   CURRENT_MONTH,
   CURRENT_YEAR,
   addPayment,
+  formatIQD,
+  periodLabel,
+  todayISO,
+  errorMessage,
   type PaymentStatus,
 } from "@/lib/donors-store";
 
 export function AddPaymentForm({
   donorId,
   defaultAmount,
+  donorName,
 }: {
   donorId: string;
   defaultAmount: number;
+  donorName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(CURRENT_MONTH);
@@ -98,21 +105,49 @@ export function AddPaymentForm({
         >
           إلغاء
         </button>
-        <button
-          onClick={() => {
-            if (amount <= 0) {
-              toast.error("أدخل مبلغاً صحيحاً");
-              return;
+        <ConfirmDialog
+          title="تأكيد تسجيل التبرع"
+          description="هل أنت متأكد من تسجيل هذا التبرع؟"
+          details={[
+            ...(donorName ? [{ label: "المتبرع", value: donorName }] : []),
+            { label: "المبلغ", value: formatIQD(amount) },
+            { label: "الشهر", value: periodLabel(month, year) },
+            { label: "التاريخ", value: todayISO() },
+            { label: "الحالة", value: status === "paid" ? "مدفوع" : "غير مدفوع" },
+          ]}
+          confirmLabel="نعم، سجّل التبرع"
+          onConfirm={async () => {
+            try {
+              await addPayment({
+                donorId,
+                month,
+                year,
+                amount,
+                status,
+                notes: notes.trim() || undefined,
+              });
+              setNotes("");
+              setOpen(false);
+              toast.success("تمت إضافة الدفعة بنجاح");
+            } catch (err) {
+              toast.error(errorMessage(err, "تعذّر حفظ الدفعة"));
             }
-            addPayment({ donorId, month, year, amount, status, notes: notes.trim() || undefined });
-            setNotes("");
-            setOpen(false);
-            toast.success("تمت إضافة الدفعة");
           }}
-          className="gradient-emerald rounded-lg px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-        >
-          حفظ الدفعة
-        </button>
+          trigger={(openDialog) => (
+            <button
+              onClick={() => {
+                if (amount <= 0) {
+                  toast.error("أدخل مبلغاً صحيحاً");
+                  return;
+                }
+                openDialog();
+              }}
+              className="gradient-emerald rounded-lg px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+            >
+              حفظ الدفعة
+            </button>
+          )}
+        />
       </div>
     </div>
   );
