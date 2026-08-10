@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { loadAll, resetStore } from "@/lib/donors-store";
+import { loadAll, resetStore, recordDonorLogin } from "@/lib/donors-store";
 
 export type AppRole = "admin" | "donor";
 
@@ -35,6 +35,7 @@ async function applySession(userId: string | null, email: string | null) {
   state = { ready: true, userId, email, role };
   emit();
   await loadAll();
+  void recordDonorLogin(userId);
 }
 
 export function initAuth() {
