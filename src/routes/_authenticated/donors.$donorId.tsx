@@ -1,7 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, Phone, MapPin, CalendarDays, Pencil, KeyRound } from "lucide-react";
+import {
+  ArrowRight,
+  Phone,
+  MapPin,
+  CalendarDays,
+  Pencil,
+  KeyRound,
+  Hash,
+  Clock,
+  Activity,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
@@ -16,6 +26,11 @@ import {
   useDonorPayments,
   sortPayments,
   loadAll,
+  overdueDays,
+  nextDueDate,
+  lastDonationDate,
+  errorMessage,
+  useStoreLoaded,
 } from "@/lib/donors-store";
 import {
   createDonorAccount,
@@ -41,6 +56,7 @@ export const Route = createFileRoute("/_authenticated/donors/$donorId")({
 function DonorDetails() {
   const { donorId } = Route.useParams();
   const donor = useDonor(donorId);
+  const loaded = useStoreLoaded();
   const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
   const makeAccount = useServerFn(createDonorAccount);
@@ -53,7 +69,10 @@ function DonorDetails() {
 
   if (!donor) {
     return (
-      <AppShell title="المتبرع غير موجود">
+      <AppShell title={loaded ? "المتبرع غير موجود" : "جارٍ التحميل…"}>
+        <p className="mb-3 text-sm text-muted-foreground">
+          {loaded ? "لم نعثر على هذا المتبرع، ربما تم حذفه نهائياً." : "جارٍ تحميل بيانات المتبرع…"}
+        </p>
         <Link to="/donors" className="text-sm font-semibold text-primary">
           العودة إلى القائمة
         </Link>
@@ -64,6 +83,8 @@ function DonorDetails() {
   const totalPaid = payments
     .filter((p) => p.status === "paid")
     .reduce((s, p) => s + p.amount, 0);
+  const over = overdueDays(donor);
+  const lastDonation = lastDonationDate(donor.id);
 
   return (
     <AppShell
@@ -82,10 +103,14 @@ function DonorDetails() {
           <DeleteDonorButton
             name={donor.name}
             variant="button"
-            onConfirm={() => {
-              void deleteDonor(donor.id);
-              toast.success("تم نقل المتبرع إلى سلة المحذوفات");
-              navigate({ to: "/donors" });
+            onConfirm={async () => {
+              try {
+                await deleteDonor(donor.id);
+                toast.success("تم نقل المتبرع إلى المحذوفين مع الاحتفاظ بسجل دفعاته");
+                navigate({ to: "/donors" });
+              } catch (err) {
+                toast.error(errorMessage(err, "تعذّر حذف المتبرع"));
+              }
             }}
           />
           <Link
@@ -106,16 +131,40 @@ function DonorDetails() {
             </span>
             <div>
               <p className="font-display text-lg font-bold text-ink">{donor.name}</p>
-              <StatusPill status={donorStatus(donor)} />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <StatusPill status={donorStatus(donor)} />
+                {over > 0 ? (
+                  <span className="inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive">
+                    متأخر {over} يوم
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
           <dl className="space-y-3 border-t border-border pt-4 text-sm">
+            <Row icon={Hash} label="معرّف المتبرع" value={donor.code ?? "—"} />
             <Row icon={Phone} label="الهاتف" value={donor.phone} />
             <Row icon={MapPin} label="المنطقة" value={donor.area} />
             {donor.location ? <Row icon={MapPin} label="العنوان" value={donor.location} /> : null}
             <Row icon={CalendarDays} label="تاريخ الإضافة" value={donor.joinedAt} />
+            <Row icon={Clock} label="يوم الاستحقاق" value={`يوم ${donor.dueDay} من كل شهر`} />
+            <Row icon={CalendarDays} label="الاستحقاق القادم" value={nextDueDate(donor)} />
+            <Row icon={CalendarDays} label="آخر تبرع" value={lastDonation ?? "لا يوجد"} />
           </dl>
+
+          <div className="space-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <Activity className="h-4 w-4 text-gold" />
+              آخر نشاط
+            </p>
+            <p>آخر تسجيل دخول: {donor.lastLoginAt ? donor.lastLoginAt.slice(0, 10) : "لم يسجّل دخول بعد"}</p>
+            <p>آخر تبرع: {lastDonation ?? "لا يوجد"}</p>
+            <p>
+              آخر تحديث للملف:{" "}
+              {donor.lastProfileUpdateAt ? donor.lastProfileUpdateAt.slice(0, 10) : donor.joinedAt}
+            </p>
+          </div>
 
           {donor.notes ? (
             <p className="rounded-lg bg-secondary p-3 text-xs leading-relaxed text-muted-foreground">
@@ -234,11 +283,15 @@ function DonorDetails() {
           <div className="surface-card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
               <h2 className="font-display text-base font-bold text-ink">سجل الدفعات الشهرية</h2>
-              <AddPaymentForm donorId={donor.id} defaultAmount={donor.monthlyAmount} />
+              <AddPaymentForm
+                donorId={donor.id}
+                defaultAmount={donor.monthlyAmount}
+                donorName={donor.name}
+              />
             </div>
             <ul className="divide-y divide-border">
               {sortPayments(payments).map((p) => (
-                <PaymentRow key={p.id} payment={p} />
+                <PaymentRow key={p.id} payment={p} donorName={donor.name} />
               ))}
               {payments.length === 0 ? (
                 <li className="px-5 py-10 text-center text-sm text-muted-foreground">
