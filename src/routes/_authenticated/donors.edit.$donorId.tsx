@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { DonorForm } from "@/components/DonorForm";
-import { useDonor, updateDonor } from "@/lib/donors-store";
+import { useDonor, updateDonor, errorMessage } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/donors/edit/$donorId")({
   head: () => ({
@@ -43,13 +43,18 @@ function EditDonorPage() {
           area: donor.area,
           location: donor.location,
           monthlyAmount: donor.monthlyAmount,
+          dueDay: donor.dueDay,
           notes: donor.notes ?? "",
         }}
         submitLabel="حفظ التعديلات"
-        onSubmit={(values) => {
-          updateDonor(donor.id, values);
-          toast.success("تم تحديث بيانات المتبرع");
-          navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
+        onSubmit={async (values) => {
+          try {
+            await updateDonor(donor.id, values);
+            toast.success("تم تحديث بيانات المتبرع");
+            navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
+          } catch (err) {
+            toast.error(errorMessage(err, "تعذّر تحديث بيانات المتبرع"));
+          }
         }}
       />
     </AppShell>

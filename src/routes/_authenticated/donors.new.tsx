@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { DonorForm } from "@/components/DonorForm";
-import { addDonor } from "@/lib/donors-store";
+import { addDonor, errorMessage } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/donors/new")({
   head: () => ({
@@ -25,15 +25,23 @@ function AddDonorPage() {
   return (
     <AppShell title="إضافة متبرع" subtitle="سجّل متبرعاً جديداً في قائمة الموكب">
       <DonorForm
-        initial={{ name: "", phone: "", area: "", location: "", monthlyAmount: 50000, notes: "" }}
+        initial={{
+          name: "",
+          phone: "",
+          area: "",
+          location: "",
+          monthlyAmount: 50000,
+          dueDay: 5,
+          notes: "",
+        }}
         submitLabel="حفظ المتبرع"
         onSubmit={async (values) => {
           try {
             const donor = await addDonor(values);
             toast.success("تمت إضافة المتبرع بنجاح");
             navigate({ to: "/donors/$donorId", params: { donorId: donor.id } });
-          } catch {
-            toast.error("تعذّر حفظ المتبرع");
+          } catch (err) {
+            toast.error(errorMessage(err, "تعذّر حفظ المتبرع"));
           }
         }}
       />
