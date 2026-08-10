@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, UserPlus, LogOut, Heart, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useAuth, signOut } from "@/lib/auth";
+import { LayoutDashboard, Users, UserPlus, Heart, WifiOff } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useAuth } from "@/lib/auth";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { APP_NAME, APP_TAGLINE } from "@/lib/app-info";
 
@@ -9,10 +9,30 @@ const adminNav = [
   { to: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
   { to: "/donors", label: "قائمة المتبرعين", icon: Users },
   { to: "/donors/new", label: "إضافة متبرع", icon: UserPlus },
-  { to: "/donors/trash", label: "المتبرعون المحذوفون", icon: Trash2 },
 ] as const;
 
 const donorNav = [{ to: "/donor", label: "بوابة المتبرع", icon: Heart }] as const;
+
+function OfflineBanner() {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const update = () => setOffline(!navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+  if (!offline) return null;
+  return (
+    <div className="mb-5 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
+      <WifiOff className="h-4 w-4 shrink-0" />
+      لا يوجد اتصال بالإنترنت. لن يتم حفظ أي تغييرات حتى يعود الاتصال.
+    </div>
+  );
+}
 
 export function AppShell({
   title,
@@ -59,15 +79,6 @@ export function AppShell({
             </Link>
           );
         })}
-
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="mt-auto flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10"
-        >
-          <LogOut className="h-4 w-4" />
-          تسجيل الخروج
-        </button>
       </aside>
 
       <main className="flex-1 px-4 py-6 sm:px-8 sm:py-10">
@@ -81,6 +92,7 @@ export function AppShell({
             <SettingsPanel />
           </div>
         </header>
+        <OfflineBanner />
         {children}
       </main>
     </div>

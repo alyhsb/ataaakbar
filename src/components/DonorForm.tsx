@@ -7,6 +7,7 @@ export type DonorFormValues = {
   area: string;
   location: string;
   monthlyAmount: number;
+  dueDay: number;
   notes: string;
 };
 
@@ -58,9 +59,14 @@ export function DonorForm({
     if (values.location.trim().length > 120) e.location = "العنوان طويل جداً";
     if (!Number.isFinite(values.monthlyAmount) || values.monthlyAmount < 1000)
       e.monthlyAmount = "أقل مبلغ هو ١٠٠٠ دينار";
+    if (!Number.isFinite(values.dueDay) || values.dueDay < 1 || values.dueDay > 28)
+      e.dueDay = "يوم الاستحقاق يجب أن يكون بين ١ و ٢٨";
     if (values.notes.length > 500) e.notes = "الملاحظات يجب ألا تتجاوز ٥٠٠ حرف";
     return e;
   }
+
+  const [pendingAmountConfirm, setPendingAmountConfirm] = useState(false);
+  const amountChanged = Number(form.monthlyAmount) !== Number(initial.monthlyAmount);
 
   return (
     <form
@@ -71,12 +77,17 @@ export function DonorForm({
         const errs = validate(form);
         setErrors(errs);
         if (Object.keys(errs).length > 0) return;
+        if (amountChanged && !pendingAmountConfirm) {
+          setPendingAmountConfirm(true);
+          return;
+        }
         onSubmit({
           name: form.name.trim(),
           phone: form.phone.trim(),
           area: form.area.trim(),
           location: form.location.trim(),
           monthlyAmount: Number(form.monthlyAmount),
+          dueDay: Number(form.dueDay),
           notes: form.notes.trim(),
         });
       }}
@@ -129,7 +140,27 @@ export function DonorForm({
             className={inputCls}
           />
         </Field>
+        <Field label="يوم الاستحقاق الشهري" error={errors.dueDay}>
+          <select
+            value={form.dueDay}
+            onChange={(e) => set("dueDay", Number(e.target.value))}
+            className={inputCls}
+          >
+            {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+              <option key={d} value={d}>
+                يوم {d} من كل شهر
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
+
+      {pendingAmountConfirm ? (
+        <div className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs text-ink">
+          سيتم تغيير مبلغ التبرع الشهري من {initial.monthlyAmount.toLocaleString("ar-IQ")} د.ع إلى{" "}
+          {Number(form.monthlyAmount).toLocaleString("ar-IQ")} د.ع. اضغط «تأكيد الحفظ» للمتابعة.
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {amounts.map((a) => (
@@ -164,7 +195,7 @@ export function DonorForm({
           type="submit"
           className="gradient-emerald rounded-lg px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)]"
         >
-          {submitLabel}
+          {pendingAmountConfirm ? "تأكيد الحفظ" : submitLabel}
         </button>
         <Link
           to="/donors"
