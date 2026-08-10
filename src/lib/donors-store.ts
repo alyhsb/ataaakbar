@@ -240,6 +240,31 @@ export function sortPayments(list: MonthlyPayment[], desc = true) {
 /* Mutations (real CRUD)                                               */
 /* ------------------------------------------------------------------ */
 
+/** Compares two phone numbers ignoring formatting characters. */
+export function samePhone(a: string, b: string) {
+  const norm = (v: string) => v.replace(/\D/g, "");
+  return norm(a) !== "" && norm(a) === norm(b);
+}
+
+function isOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+/** Turns any thrown value into a clear Arabic message. */
+export function errorMessage(err: unknown, fallback = "تعذّر إتمام العملية") {
+  if (isOffline()) return "لا يوجد اتصال بالإنترنت، ولم يتم تنفيذ العملية. تحقّق من الاتصال ثم أعد المحاولة.";
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+  if (/duplicate key|unique constraint|donors_unique_active_phone/i.test(raw))
+    return "رقم الهاتف مسجّل لمتبرع آخر بالفعل";
+  if (/fetch|network|Failed to fetch|NetworkError/i.test(raw))
+    return "تعذّر الاتصال بالخادم، ولم يتم تنفيذ العملية. تحقّق من الاتصال ثم أعد المحاولة.";
+  return raw || fallback;
+}
+
+function asAppError(err: { message?: string } | null, _kind: "duplicate") {
+  return new Error(errorMessage(new Error(err?.message ?? "")));
+}
+
 export async function addDonor(input: {
   name: string;
   phone: string;
