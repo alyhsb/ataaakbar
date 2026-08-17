@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       donors: {
         Row: {
+          access_code: string | null
           area: string
           created_at: string
           deleted_at: string | null
@@ -26,6 +27,7 @@ export type Database = {
           last_login_at: string | null
           last_profile_update_at: string | null
           location: string
+          mawkib_id: string | null
           monthly_amount: number
           name: string
           notes: string | null
@@ -35,6 +37,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          access_code?: string | null
           area?: string
           created_at?: string
           deleted_at?: string | null
@@ -45,6 +48,7 @@ export type Database = {
           last_login_at?: string | null
           last_profile_update_at?: string | null
           location?: string
+          mawkib_id?: string | null
           monthly_amount?: number
           name: string
           notes?: string | null
@@ -54,6 +58,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          access_code?: string | null
           area?: string
           created_at?: string
           deleted_at?: string | null
@@ -64,6 +69,7 @@ export type Database = {
           last_login_at?: string | null
           last_profile_update_at?: string | null
           location?: string
+          mawkib_id?: string | null
           monthly_amount?: number
           name?: string
           notes?: string | null
@@ -71,6 +77,38 @@ export type Database = {
           profile_completed?: boolean
           user_id?: string | null
           username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donors_mawkib_id_fkey"
+            columns: ["mawkib_id"]
+            isOneToOne: false
+            referencedRelation: "mawakib"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mawakib: {
+        Row: {
+          area: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          area?: string
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
         }
         Relationships: []
       }
@@ -182,6 +220,7 @@ export type Database = {
           full_name: string | null
           id: string
           location: string | null
+          mawkib_id: string | null
           phone: string | null
         }
         Insert: {
@@ -191,6 +230,7 @@ export type Database = {
           full_name?: string | null
           id: string
           location?: string | null
+          mawkib_id?: string | null
           phone?: string | null
         }
         Update: {
@@ -200,9 +240,18 @@ export type Database = {
           full_name?: string | null
           id?: string
           location?: string | null
+          mawkib_id?: string | null
           phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_mawkib_id_fkey"
+            columns: ["mawkib_id"]
+            isOneToOne: false
+            referencedRelation: "mawakib"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -230,6 +279,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_mawkib: { Args: { _mawkib: string }; Returns: boolean }
+      current_mawkib_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -239,7 +290,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "donor"
+      app_role: "admin" | "donor" | "owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -367,7 +418,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "donor"],
+      app_role: ["admin", "donor", "owner"],
     },
   },
 } as const
