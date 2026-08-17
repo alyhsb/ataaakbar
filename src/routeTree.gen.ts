@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedCompleteProfileRouteImport } from './routes/_authenticated/complete-profile'
 import { Route as AuthenticatedDonorRouteImport } from './routes/_authenticated/donor'
 import { Route as AuthenticatedDonorsIndexRouteImport } from './routes/_authenticated/donors.index'
 import { Route as AuthenticatedDonorsDonorIdRouteImport } from './routes/_authenticated/donors.$donorId'
@@ -33,12 +32,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCompleteProfileRoute =
-  AuthenticatedCompleteProfileRouteImport.update({
-    id: '/complete-profile',
-    path: '/complete-profile',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedDonorRoute = AuthenticatedDonorRouteImport.update({
   id: '/donor',
   path: '/donor',
@@ -71,7 +64,6 @@ const AuthenticatedDonorsEditDonorIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/complete-profile': typeof AuthenticatedCompleteProfileRoute
   '/donor': typeof AuthenticatedDonorRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
@@ -81,7 +73,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/complete-profile': typeof AuthenticatedCompleteProfileRoute
   '/donor': typeof AuthenticatedDonorRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
@@ -93,7 +84,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/complete-profile': typeof AuthenticatedCompleteProfileRoute
   '/_authenticated/donor': typeof AuthenticatedDonorRoute
   '/_authenticated/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/_authenticated/donors/new': typeof AuthenticatedDonorsNewRoute
@@ -105,7 +95,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/complete-profile'
     | '/donor'
     | '/donors/$donorId'
     | '/donors/new'
@@ -115,7 +104,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
-    | '/complete-profile'
     | '/donor'
     | '/donors/$donorId'
     | '/donors/new'
@@ -126,7 +114,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/admin'
-    | '/_authenticated/complete-profile'
     | '/_authenticated/donor'
     | '/_authenticated/donors/$donorId'
     | '/_authenticated/donors/new'
@@ -160,13 +147,6 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/complete-profile': {
-      id: '/_authenticated/complete-profile'
-      path: '/complete-profile'
-      fullPath: '/complete-profile'
-      preLoaderRoute: typeof AuthenticatedCompleteProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/donor': {
@@ -209,7 +189,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedCompleteProfileRoute: typeof AuthenticatedCompleteProfileRoute
   AuthenticatedDonorRoute: typeof AuthenticatedDonorRoute
   AuthenticatedDonorsDonorIdRoute: typeof AuthenticatedDonorsDonorIdRoute
   AuthenticatedDonorsNewRoute: typeof AuthenticatedDonorsNewRoute
@@ -219,7 +198,6 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedCompleteProfileRoute: AuthenticatedCompleteProfileRoute,
   AuthenticatedDonorRoute: AuthenticatedDonorRoute,
   AuthenticatedDonorsDonorIdRoute: AuthenticatedDonorsDonorIdRoute,
   AuthenticatedDonorsNewRoute: AuthenticatedDonorsNewRoute,
@@ -237,3 +215,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
