@@ -55,12 +55,9 @@ function DonorDetails() {
   const loaded = useStoreLoaded();
   const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
-  const makeAccount = useServerFn(createDonorAccount);
-  const resetPassword = useServerFn(resetDonorPassword);
-  const updateAccount = useServerFn(adminUpdateDonorAccount);
-  const [creds, setCreds] = useState<{ username: string; password: string } | null>(null);
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const updateAccount = useServerFn(updateDonorCredentials);
+  const [newPhone, setNewPhone] = useState("");
+  const [newCode, setNewCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   if (!donor) {
