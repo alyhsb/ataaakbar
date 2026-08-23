@@ -6,11 +6,12 @@ import {
   Heart,
   WifiOff,
   Inbox,
-  Plus,
   Building2,
   UserCog,
   KeyRound,
+  Target,
 } from "lucide-react";
+
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { SettingsPanel } from "@/components/SettingsPanel";
