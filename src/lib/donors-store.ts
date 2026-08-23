@@ -237,7 +237,11 @@ export async function loadAll() {
     area: (r.area as string) ?? "",
     phone: (r.phone as string) ?? "",
     description: ((r as { description?: string }).description ?? "") as string,
+    disabledAt: ((r as { disabled_at?: string | null }).disabled_at ?? undefined) as
+      | string
+      | undefined,
   }));
+
   amountRequests = (ar.data ?? []).map((r) => ({
     id: r.id as string,
     donorId: r.donor_id as string,
