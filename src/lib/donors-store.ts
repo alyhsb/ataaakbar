@@ -30,6 +30,7 @@ export type Donor = {
   id: string;
   userId?: string | undefined;
   code?: string | undefined;
+  accessCode?: string | undefined;
   name: string;
   phone: string;
   area: string;
@@ -103,6 +104,7 @@ type DonorRow = {
   notes: string | null;
   joined_at: string;
   username: string | null;
+  access_code?: string | null;
   deleted_at: string | null;
   profile_completed?: boolean | null;
   last_login_at?: string | null;
@@ -133,6 +135,7 @@ const mapDonor = (r: DonorRow): Donor => ({
   id: r.id,
   userId: r.user_id ?? undefined,
   code: r.donor_code ?? undefined,
+  accessCode: r.access_code ?? undefined,
   name: r.name,
   phone: r.phone,
   area: r.area,
