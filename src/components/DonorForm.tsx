@@ -9,8 +9,8 @@ export type DonorFormValues = {
   monthlyAmount: number;
   dueDay: number;
   notes: string;
-  accessCode?: string;
 };
+
 
 const amounts = [25000, 50000, 75000, 100000];
 
@@ -38,12 +38,10 @@ function Field({
 export function DonorForm({
   initial,
   submitLabel,
-  withAccessCode = false,
   onSubmit,
 }: {
   initial: DonorFormValues;
   submitLabel: string;
-  withAccessCode?: boolean;
   onSubmit: (values: DonorFormValues) => void;
 }) {
   const [form, setForm] = useState<DonorFormValues>(initial);
@@ -64,10 +62,6 @@ export function DonorForm({
       e.monthlyAmount = "أقل مبلغ هو ١٠٠٠ دينار";
     if (!Number.isFinite(values.dueDay) || values.dueDay < 1 || values.dueDay > 28)
       e.dueDay = "يوم الاستحقاق يجب أن يكون بين ١ و ٢٨";
-    if (withAccessCode) {
-      const code = (values.accessCode ?? "").trim();
-      if (code.length < 6 || code.length > 32) e.accessCode = "رمز الدخول يجب أن يكون ٦ خانات فأكثر";
-    }
     if (values.notes.length > 500) e.notes = "الملاحظات يجب ألا تتجاوز ٥٠٠ حرف";
     return e;
   }
@@ -96,7 +90,7 @@ export function DonorForm({
           monthlyAmount: Number(form.monthlyAmount),
           dueDay: Number(form.dueDay),
           notes: form.notes.trim(),
-          accessCode: (form.accessCode ?? "").trim(),
+          });
         });
       }}
     >
@@ -161,18 +155,8 @@ export function DonorForm({
             ))}
           </select>
         </Field>
-        {withAccessCode ? (
-          <Field label="رمز الدخول / Access Code" error={errors.accessCode}>
-            <input
-              value={form.accessCode ?? ""}
-              maxLength={32}
-              onChange={(e) => set("accessCode", e.target.value)}
-              placeholder="رمز يُسلَّم للمتبرع لتسجيل الدخول"
-              className={inputCls}
-            />
-          </Field>
-        ) : null}
       </div>
+
 
       {pendingAmountConfirm ? (
         <div className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs text-ink">
