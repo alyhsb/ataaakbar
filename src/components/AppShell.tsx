@@ -1,5 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, UserPlus, Heart, WifiOff, ShieldPlus } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  Heart,
+  WifiOff,
+  ShieldPlus,
+  Inbox,
+  Plus,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -9,11 +18,15 @@ const adminNav = [
   { to: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
   { to: "/donors", label: "قائمة المتبرعين", icon: Users },
   { to: "/donors/new", label: "إضافة متبرع", icon: UserPlus },
+  { to: "/requests", label: "طلبات المتبرعين", icon: Inbox },
 ] as const;
 
 const ownerNav = { to: "/owners/new", label: "إضافة صاحب موكب", icon: ShieldPlus } as const;
 
-const donorNav = [{ to: "/donor", label: "بوابة المتبرع", icon: Heart }] as const;
+const donorNav = [
+  { to: "/donor", label: "مواكبي", icon: Heart },
+  { to: "/donor/browse", label: "إضافة موكب", icon: Plus },
+] as const;
 
 function OfflineBanner() {
   const [offline, setOffline] = useState(false);

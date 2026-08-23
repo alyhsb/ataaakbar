@@ -26,9 +26,39 @@ export type MonthlyPayment = {
   txnCode?: string | undefined;
 };
 
+export type MembershipStatus = "pending" | "active" | "rejected";
+
+export type Mawkib = {
+  id: string;
+  name: string;
+  area: string;
+  phone: string;
+  description: string;
+};
+
+export type AmountChangeRequest = {
+  id: string;
+  donorId: string;
+  currentAmount: number;
+  requestedAmount: number;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  decidedAt?: string | undefined;
+};
+
+export type AmountHistoryEntry = {
+  id: string;
+  donorId: string;
+  oldAmount: number;
+  newAmount: number;
+  createdAt: string;
+};
+
 export type Donor = {
   id: string;
   userId?: string | undefined;
+  mawkibId?: string | undefined;
+  membershipStatus: MembershipStatus;
   code?: string | undefined;
   accessCode?: string | undefined;
   name: string;
@@ -77,6 +107,9 @@ export const CURRENT_MONTH = now.getMonth() + 1;
 let donors: Donor[] = [];
 let payments: MonthlyPayment[] = [];
 let notifications: AppNotification[] = [];
+let mawakib: Mawkib[] = [];
+let amountRequests: AmountChangeRequest[] = [];
+let amountHistory: AmountHistoryEntry[] = [];
 let loaded = false;
 
 const listeners = new Set<() => void>();
@@ -90,10 +123,15 @@ const getDonors = () => donors;
 const getPayments = () => payments;
 const getNotifications = () => notifications;
 const getLoaded = () => loaded;
+const getMawakib = () => mawakib;
+const getAmountRequests = () => amountRequests;
+const getAmountHistory = () => amountHistory;
 
 type DonorRow = {
   id: string;
   user_id: string | null;
+  mawkib_id?: string | null;
+  membership_status?: string | null;
   donor_code?: string | null;
   name: string;
   phone: string;
@@ -134,6 +172,13 @@ type NotificationRow = {
 const mapDonor = (r: DonorRow): Donor => ({
   id: r.id,
   userId: r.user_id ?? undefined,
+  mawkibId: r.mawkib_id ?? undefined,
+  membershipStatus:
+    r.membership_status === "pending"
+      ? "pending"
+      : r.membership_status === "rejected"
+        ? "rejected"
+        : "active",
   code: r.donor_code ?? undefined,
   accessCode: r.access_code ?? undefined,
   name: r.name,
@@ -176,14 +221,40 @@ const mapNotification = (r: NotificationRow): AppNotification => ({
 
 /** Loads everything the signed-in user is allowed to see (RLS scoped). */
 export async function loadAll() {
-  const [d, p, n] = await Promise.all([
+  const [d, p, n, m, ar, ah] = await Promise.all([
     supabase.from("donors").select("*").order("created_at", { ascending: false }),
     supabase.from("payments").select("*"),
     supabase.from("notifications").select("*").order("created_at", { ascending: false }),
+    supabase.from("mawakib").select("*").order("name"),
+    supabase.from("amount_change_requests").select("*").order("created_at", { ascending: false }),
+    supabase.from("amount_history").select("*").order("created_at", { ascending: false }),
   ]);
   donors = (d.data ?? []).map((r) => mapDonor(r as DonorRow));
   payments = (p.data ?? []).map((r) => mapPayment(r as PaymentRowDb));
   notifications = (n.data ?? []).map((r) => mapNotification(r as NotificationRow));
+  mawakib = (m.data ?? []).map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    area: (r.area as string) ?? "",
+    phone: (r.phone as string) ?? "",
+    description: ((r as { description?: string }).description ?? "") as string,
+  }));
+  amountRequests = (ar.data ?? []).map((r) => ({
+    id: r.id as string,
+    donorId: r.donor_id as string,
+    currentAmount: r.current_amount as number,
+    requestedAmount: r.requested_amount as number,
+    status: r.status as AmountChangeRequest["status"],
+    createdAt: r.created_at as string,
+    decidedAt: (r.decided_at as string | null) ?? undefined,
+  }));
+  amountHistory = (ah.data ?? []).map((r) => ({
+    id: r.id as string,
+    donorId: r.donor_id as string,
+    oldAmount: r.old_amount as number,
+    newAmount: r.new_amount as number,
+    createdAt: r.created_at as string,
+  }));
   loaded = true;
   emit();
 }
@@ -192,6 +263,9 @@ export function resetStore() {
   donors = [];
   payments = [];
   notifications = [];
+  mawakib = [];
+  amountRequests = [];
+  amountHistory = [];
   loaded = false;
   emit();
 }
@@ -205,7 +279,30 @@ export function useAllDonors() {
 }
 
 export function useDonors() {
-  return useAllDonors().filter((d) => !d.deletedAt);
+  return useAllDonors().filter((d) => !d.deletedAt && d.membershipStatus === "active");
+}
+
+export function useMawakib() {
+  return useSyncExternalStore(subscribe, getMawakib, getMawakib);
+}
+
+export function useAmountRequests() {
+  return useSyncExternalStore(subscribe, getAmountRequests, getAmountRequests);
+}
+
+export function useAmountHistory(donorId?: string) {
+  const all = useSyncExternalStore(subscribe, getAmountHistory, getAmountHistory);
+  return donorId ? all.filter((h) => h.donorId === donorId) : all;
+}
+
+/** Pending join requests visible to the signed-in manager. */
+export function usePendingMemberships() {
+  return useAllDonors().filter((d) => !d.deletedAt && d.membershipStatus === "pending");
+}
+
+/** Every mawkib membership (active + pending) of one donor account. */
+export function useMyMemberships(userId: string | undefined) {
+  return useAllDonors().filter((d) => !d.deletedAt && d.userId === userId);
 }
 
 export function useDeletedDonors() {
@@ -218,6 +315,10 @@ export function useDonor(id: string | undefined) {
 
 export function useDonorByUser(userId: string | undefined) {
   return useDonors().find((d) => d.userId === userId);
+}
+
+export function mawkibName(id: string | undefined) {
+  return mawakib.find((m) => m.id === id)?.name ?? "موكب";
 }
 
 export function usePayments() {
@@ -561,6 +662,7 @@ export async function startNewMonth() {
   const missing = donors.filter(
     (d) =>
       !d.deletedAt &&
+      d.membershipStatus === "active" &&
       !payments.some((p) => p.donorId === d.id && p.month === month && p.year === year),
   );
   if (missing.length === 0) return { month, year, count: 0 };
@@ -602,7 +704,7 @@ export async function startNewMonth() {
 
 /** Sends the monthly due reminder to every active donor. */
 export async function sendReminderToAll() {
-  const active = donors.filter((d) => !d.deletedAt);
+  const active = donors.filter((d) => !d.deletedAt && d.membershipStatus === "active");
   if (active.length === 0) return 0;
   const { data, error } = await supabase
     .from("notifications")
@@ -657,7 +759,7 @@ export function donorStatus(d: Donor): PaymentStatus {
 }
 
 export function stats() {
-  const active = donors.filter((d) => !d.deletedAt);
+  const active = donors.filter((d) => !d.deletedAt && d.membershipStatus === "active");
   const expectedTotal = payments.reduce((s, p) => s + p.amount, 0);
   const collected = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
   const expectedMonthly = active.reduce((s, d) => s + d.monthlyAmount, 0);
@@ -697,7 +799,7 @@ export function monthlySeries() {
 
 /** Donor payment status split for the current month. */
 export function statusSplit() {
-  const active = donors.filter((d) => !d.deletedAt);
+  const active = donors.filter((d) => !d.deletedAt && d.membershipStatus === "active");
   const paid = active.filter((d) => donorStatus(d) === "paid").length;
   return [
     { name: "مدفوع", value: paid },
@@ -708,7 +810,7 @@ export function statusSplit() {
 /** Top donors by total paid amount. */
 export function topDonors(limit = 5) {
   return donors
-    .filter((d) => !d.deletedAt)
+    .filter((d) => !d.deletedAt && d.membershipStatus === "active")
     .map((d) => ({
       name: d.name,
       total: payments
@@ -784,7 +886,7 @@ export async function recordDonorLogin(userId: string) {
 
 /** Headline numbers for the current month only. */
 export function monthStats() {
-  const active = donors.filter((d) => !d.deletedAt);
+  const active = donors.filter((d) => !d.deletedAt && d.membershipStatus === "active");
   const monthPayments = payments.filter(
     (p) => p.month === CURRENT_MONTH && p.year === CURRENT_YEAR,
   );
@@ -801,4 +903,163 @@ export function monthStats() {
     collected,
     remaining: Math.max(expected - collected, 0),
   };
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Multi-mawkib memberships                                            */
+/* ------------------------------------------------------------------ */
+
+/** Donor sends a join request ("طلب انضمام") to a mawkib. */
+export async function requestJoinMawkib(input: {
+  userId: string;
+  name: string;
+  phone: string;
+  mawkibId: string;
+  monthlyAmount: number;
+  dueDay?: number;
+  area?: string;
+  location?: string;
+}) {
+  if (donors.some((d) => !d.deletedAt && d.userId === input.userId && d.mawkibId === input.mawkibId)) {
+    throw new Error("لديك طلب أو اشتراك في هذا الموكب بالفعل");
+  }
+  const { data, error } = await supabase
+    .from("donors")
+    .insert({
+      user_id: input.userId,
+      mawkib_id: input.mawkibId,
+      membership_status: "pending",
+      name: input.name,
+      phone: input.phone,
+      area: input.area ?? "",
+      location: input.location ?? "",
+      monthly_amount: input.monthlyAmount,
+      due_day: input.dueDay ?? 5,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(errorMessage(error));
+  donors = [mapDonor(data as DonorRow), ...donors];
+  emit();
+}
+
+/** Mawkib owner / admin approves or rejects a join request. */
+export async function decideMembership(donorId: string, approve: boolean) {
+  const status = approve ? "active" : "rejected";
+  const { error } = await supabase
+    .from("donors")
+    .update({ membership_status: status })
+    .eq("id", donorId);
+  if (error) throw new Error(errorMessage(error));
+  donors = donors.map((d) => (d.id === donorId ? { ...d, membershipStatus: status } : d));
+  emit();
+  const donor = donors.find((d) => d.id === donorId);
+  if (donor) {
+    await pushNotification({
+      donorId,
+      kind: "reminder",
+      title: approve ? "تمت الموافقة على طلب الانضمام" : "تم رفض طلب الانضمام",
+      body: approve
+        ? `تمت الموافقة على انضمامك إلى ${mawkibName(donor.mawkibId)} بمبلغ ${formatIQD(donor.monthlyAmount)} شهرياً.`
+        : `نعتذر، تم رفض طلب انضمامك إلى ${mawkibName(donor.mawkibId)}.`,
+    });
+  }
+}
+
+/** Donor asks to change the monthly amount of one membership. */
+export async function requestAmountChange(donorId: string, requestedAmount: number) {
+  const donor = donors.find((d) => d.id === donorId);
+  if (!donor) throw new Error("الاشتراك غير موجود");
+  if (amountRequests.some((r) => r.donorId === donorId && r.status === "pending")) {
+    throw new Error("لديك طلب تغيير مبلغ قيد الانتظار لهذا الموكب");
+  }
+  const { data, error } = await supabase
+    .from("amount_change_requests")
+    .insert({
+      donor_id: donorId,
+      current_amount: donor.monthlyAmount,
+      requested_amount: requestedAmount,
+      status: "pending",
+    })
+    .select()
+    .single();
+  if (error) throw new Error(errorMessage(error));
+  amountRequests = [
+    {
+      id: data.id as string,
+      donorId,
+      currentAmount: donor.monthlyAmount,
+      requestedAmount,
+      status: "pending",
+      createdAt: data.created_at as string,
+    },
+    ...amountRequests,
+  ];
+  emit();
+}
+
+/** Mawkib owner / admin approves or rejects an amount change request. */
+export async function decideAmountRequest(requestId: string, approve: boolean, userId?: string) {
+  const req = amountRequests.find((r) => r.id === requestId);
+  if (!req) return;
+  const decidedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("amount_change_requests")
+    .update({
+      status: approve ? "approved" : "rejected",
+      decided_at: decidedAt,
+      decided_by: userId ?? null,
+    })
+    .eq("id", requestId);
+  if (error) throw new Error(errorMessage(error));
+
+  if (approve) {
+    const { error: upErr } = await supabase
+      .from("donors")
+      .update({ monthly_amount: req.requestedAmount })
+      .eq("id", req.donorId);
+    if (upErr) throw new Error(errorMessage(upErr));
+    await supabase.from("payments").update({ amount: req.requestedAmount })
+      .eq("donor_id", req.donorId)
+      .eq("status", "unpaid");
+    await supabase.from("amount_history").insert({
+      donor_id: req.donorId,
+      old_amount: req.currentAmount,
+      new_amount: req.requestedAmount,
+      changed_by: userId ?? null,
+    });
+    donors = donors.map((d) =>
+      d.id === req.donorId ? { ...d, monthlyAmount: req.requestedAmount } : d,
+    );
+    payments = payments.map((p) =>
+      p.donorId === req.donorId && p.status === "unpaid"
+        ? { ...p, amount: req.requestedAmount }
+        : p,
+    );
+    amountHistory = [
+      {
+        id: `${requestId}-h`,
+        donorId: req.donorId,
+        oldAmount: req.currentAmount,
+        newAmount: req.requestedAmount,
+        createdAt: decidedAt,
+      },
+      ...amountHistory,
+    ];
+  }
+
+  amountRequests = amountRequests.map((r) =>
+    r.id === requestId ? { ...r, status: approve ? "approved" : "rejected", decidedAt } : r,
+  );
+  emit();
+
+  await pushNotification({
+    donorId: req.donorId,
+    kind: "reminder",
+    title: approve ? "تمت الموافقة على تغيير مبلغ التبرع" : "تم رفض طلب تغيير مبلغ التبرع",
+    body: approve
+      ? `أصبح مبلغ تبرعك الشهري ${formatIQD(req.requestedAmount)} بدلاً من ${formatIQD(req.currentAmount)}.`
+      : `تم رفض طلبك بتغيير المبلغ إلى ${formatIQD(req.requestedAmount)}، ويبقى المبلغ ${formatIQD(req.currentAmount)}.`,
+  });
 }

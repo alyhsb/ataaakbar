@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedDonorRouteImport } from './routes/_authenticated/donor'
+import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
+import { Route as AuthenticatedDonorIndexRouteImport } from './routes/_authenticated/donor.index'
+import { Route as AuthenticatedDonorBrowseRouteImport } from './routes/_authenticated/donor.browse'
 import { Route as AuthenticatedDonorsIndexRouteImport } from './routes/_authenticated/donors.index'
 import { Route as AuthenticatedDonorsDonorIdRouteImport } from './routes/_authenticated/donors.$donorId'
 import { Route as AuthenticatedDonorsNewRouteImport } from './routes/_authenticated/donors.new'
 import { Route as AuthenticatedOwnersNewRouteImport } from './routes/_authenticated/owners.new'
+import { Route as AuthenticatedDonorMawkibDonorIdRouteImport } from './routes/_authenticated/donor.mawkib.$donorId'
 import { Route as AuthenticatedDonorsEditDonorIdRouteImport } from './routes/_authenticated/donors.edit.$donorId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -33,11 +36,22 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDonorRoute = AuthenticatedDonorRouteImport.update({
-  id: '/donor',
-  path: '/donor',
+const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDonorIndexRoute = AuthenticatedDonorIndexRouteImport.update({
+  id: '/donor/',
+  path: '/donor/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDonorBrowseRoute =
+  AuthenticatedDonorBrowseRouteImport.update({
+    id: '/donor/browse',
+    path: '/donor/browse',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDonorsIndexRoute =
   AuthenticatedDonorsIndexRouteImport.update({
     id: '/donors/',
@@ -60,6 +74,12 @@ const AuthenticatedOwnersNewRoute = AuthenticatedOwnersNewRouteImport.update({
   path: '/owners/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDonorMawkibDonorIdRoute =
+  AuthenticatedDonorMawkibDonorIdRouteImport.update({
+    id: '/donor/mawkib/$donorId',
+    path: '/donor/mawkib/$donorId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDonorsEditDonorIdRoute =
   AuthenticatedDonorsEditDonorIdRouteImport.update({
     id: '/donors/edit/$donorId',
@@ -70,21 +90,27 @@ const AuthenticatedDonorsEditDonorIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/donor': typeof AuthenticatedDonorRoute
+  '/requests': typeof AuthenticatedRequestsRoute
+  '/donor/browse': typeof AuthenticatedDonorBrowseRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
   '/owners/new': typeof AuthenticatedOwnersNewRoute
+  '/donor/': typeof AuthenticatedDonorIndexRoute
   '/donors/': typeof AuthenticatedDonorsIndexRoute
+  '/donor/mawkib/$donorId': typeof AuthenticatedDonorMawkibDonorIdRoute
   '/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/donor': typeof AuthenticatedDonorRoute
+  '/requests': typeof AuthenticatedRequestsRoute
+  '/donor/browse': typeof AuthenticatedDonorBrowseRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
   '/owners/new': typeof AuthenticatedOwnersNewRoute
+  '/donor': typeof AuthenticatedDonorIndexRoute
   '/donors': typeof AuthenticatedDonorsIndexRoute
+  '/donor/mawkib/$donorId': typeof AuthenticatedDonorMawkibDonorIdRoute
   '/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
 export interface FileRoutesById {
@@ -92,11 +118,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/donor': typeof AuthenticatedDonorRoute
+  '/_authenticated/requests': typeof AuthenticatedRequestsRoute
+  '/_authenticated/donor/browse': typeof AuthenticatedDonorBrowseRoute
   '/_authenticated/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/_authenticated/donors/new': typeof AuthenticatedDonorsNewRoute
   '/_authenticated/owners/new': typeof AuthenticatedOwnersNewRoute
+  '/_authenticated/donor/': typeof AuthenticatedDonorIndexRoute
   '/_authenticated/donors/': typeof AuthenticatedDonorsIndexRoute
+  '/_authenticated/donor/mawkib/$donorId': typeof AuthenticatedDonorMawkibDonorIdRoute
   '/_authenticated/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
 export interface FileRouteTypes {
@@ -104,32 +133,41 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/donor'
+    | '/requests'
+    | '/donor/browse'
     | '/donors/$donorId'
     | '/donors/new'
     | '/owners/new'
+    | '/donor/'
     | '/donors/'
+    | '/donor/mawkib/$donorId'
     | '/donors/edit/$donorId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
-    | '/donor'
+    | '/requests'
+    | '/donor/browse'
     | '/donors/$donorId'
     | '/donors/new'
     | '/owners/new'
+    | '/donor'
     | '/donors'
+    | '/donor/mawkib/$donorId'
     | '/donors/edit/$donorId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/_authenticated/admin'
-    | '/_authenticated/donor'
+    | '/_authenticated/requests'
+    | '/_authenticated/donor/browse'
     | '/_authenticated/donors/$donorId'
     | '/_authenticated/donors/new'
     | '/_authenticated/owners/new'
+    | '/_authenticated/donor/'
     | '/_authenticated/donors/'
+    | '/_authenticated/donor/mawkib/$donorId'
     | '/_authenticated/donors/edit/$donorId'
   fileRoutesById: FileRoutesById
 }
@@ -161,11 +199,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/donor': {
-      id: '/_authenticated/donor'
+    '/_authenticated/requests': {
+      id: '/_authenticated/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/donor/': {
+      id: '/_authenticated/donor/'
       path: '/donor'
-      fullPath: '/donor'
-      preLoaderRoute: typeof AuthenticatedDonorRouteImport
+      fullPath: '/donor/'
+      preLoaderRoute: typeof AuthenticatedDonorIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/donor/browse': {
+      id: '/_authenticated/donor/browse'
+      path: '/donor/browse'
+      fullPath: '/donor/browse'
+      preLoaderRoute: typeof AuthenticatedDonorBrowseRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/donors/': {
@@ -196,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOwnersNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/donor/mawkib/$donorId': {
+      id: '/_authenticated/donor/mawkib/$donorId'
+      path: '/donor/mawkib/$donorId'
+      fullPath: '/donor/mawkib/$donorId'
+      preLoaderRoute: typeof AuthenticatedDonorMawkibDonorIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/donors/edit/$donorId': {
       id: '/_authenticated/donors/edit/$donorId'
       path: '/donors/edit/$donorId'
@@ -208,21 +267,27 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedDonorRoute: typeof AuthenticatedDonorRoute
+  AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
+  AuthenticatedDonorBrowseRoute: typeof AuthenticatedDonorBrowseRoute
   AuthenticatedDonorsDonorIdRoute: typeof AuthenticatedDonorsDonorIdRoute
   AuthenticatedDonorsNewRoute: typeof AuthenticatedDonorsNewRoute
   AuthenticatedOwnersNewRoute: typeof AuthenticatedOwnersNewRoute
+  AuthenticatedDonorIndexRoute: typeof AuthenticatedDonorIndexRoute
   AuthenticatedDonorsIndexRoute: typeof AuthenticatedDonorsIndexRoute
+  AuthenticatedDonorMawkibDonorIdRoute: typeof AuthenticatedDonorMawkibDonorIdRoute
   AuthenticatedDonorsEditDonorIdRoute: typeof AuthenticatedDonorsEditDonorIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedDonorRoute: AuthenticatedDonorRoute,
+  AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
+  AuthenticatedDonorBrowseRoute: AuthenticatedDonorBrowseRoute,
   AuthenticatedDonorsDonorIdRoute: AuthenticatedDonorsDonorIdRoute,
   AuthenticatedDonorsNewRoute: AuthenticatedDonorsNewRoute,
   AuthenticatedOwnersNewRoute: AuthenticatedOwnersNewRoute,
+  AuthenticatedDonorIndexRoute: AuthenticatedDonorIndexRoute,
   AuthenticatedDonorsIndexRoute: AuthenticatedDonorsIndexRoute,
+  AuthenticatedDonorMawkibDonorIdRoute: AuthenticatedDonorMawkibDonorIdRoute,
   AuthenticatedDonorsEditDonorIdRoute: AuthenticatedDonorsEditDonorIdRoute,
 }
 

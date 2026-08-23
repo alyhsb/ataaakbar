@@ -42,6 +42,8 @@ function WelcomePage() {
   const [choice, setChoice] = useState<Choice | null>(null);
   const [phone, setPhone] = useState("");
   const [accessCode, setAccessCode] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,26 @@ function WelcomePage() {
     try {
       const digits = phone.replace(/\D/g, "");
       if (digits.length < 7) throw new Error("رقم هاتف غير صالح");
+      if (choice === "donor" && mode === "register") {
+        if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
+        if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
+        const { error } = await supabase.auth.signUp({
+          email: toLoginEmail(phone),
+          password: accessCode,
+          options: {
+            data: { full_name: fullName.trim(), phone, account_type: "donor" },
+          },
+        });
+        if (error) {
+          throw new Error(
+            /registered|exists/i.test(error.message)
+              ? "رقم الهاتف مسجّل بالفعل، سجّل الدخول بدلاً من ذلك"
+              : "تعذّر إنشاء الحساب",
+          );
+        }
+        toast.success("تم إنشاء حسابك، اختر موكباً للانضمام إليه");
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({
         email: toLoginEmail(phone),
         password: accessCode,
@@ -122,8 +144,8 @@ function WelcomePage() {
               <div className="surface-card space-y-2 p-5 text-sm leading-relaxed text-muted-foreground">
                 <p className="font-display text-base font-bold text-ink">أهلاً بك في عطاء الأكبر</p>
                 <p>
-                  يمكنك تسجيل الدخول باستخدام رقم الهاتف ورمز الدخول اللذين تم تزويدك بهما من إدارة
-                  الموكب.
+                  أنشئ حسابك برقم هاتفك ورمز دخول خاص بك، ثم اختر الموكب أو المواكب التي ترغب
+                  بالتبرع لها وأرسل طلب انضمام.
                 </p>
               </div>
             ) : (
@@ -151,8 +173,40 @@ function WelcomePage() {
 
             <form className="surface-card space-y-4 p-5" onSubmit={onSubmit}>
               <h2 className="font-display text-lg font-bold text-ink">
-                {choice === "donor" ? "تسجيل الدخول للمتبرع" : "تسجيل الدخول لصاحب الموكب"}
+                {choice === "owner"
+                  ? "تسجيل الدخول لصاحب الموكب"
+                  : mode === "login"
+                    ? "تسجيل الدخول للمتبرع"
+                    : "إنشاء حساب متبرع جديد"}
               </h2>
+              {choice === "donor" ? (
+                <div className="flex rounded-lg bg-secondary p-1">
+                  {(["login", "register"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setMode(m)}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-colors ${
+                        mode === m ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      {m === "login" ? "تسجيل الدخول" : "حساب جديد"}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {choice === "donor" && mode === "register" ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">الاسم الكامل</span>
+                  <input
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="الاسم الثلاثي"
+                    className={inputCls}
+                  />
+                </label>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">رقم الهاتف</span>
                 <input
@@ -181,10 +235,12 @@ function WelcomePage() {
                 className="gradient-emerald flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] disabled:opacity-70"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                تسجيل الدخول
+                {choice === "donor" && mode === "register" ? "إنشاء الحساب" : "تسجيل الدخول"}
               </button>
               <p className="text-center text-[11px] text-muted-foreground">
-                الحسابات تُنشأ من قبل إدارة الموكب فقط، لا يوجد تسجيل ذاتي.
+                {choice === "donor"
+                  ? "بعد إنشاء الحساب اختر المواكب التي تود التبرع لها."
+                  : "حسابات أصحاب المواكب تُنشأ من قبل إدارة التطبيق فقط."}
               </p>
             </form>
           </div>
