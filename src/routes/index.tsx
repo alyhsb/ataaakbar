@@ -221,19 +221,24 @@ function WelcomePage() {
 
             <form className="surface-card space-y-4 p-5" onSubmit={onSubmit}>
               <h2 className="font-display text-lg font-bold text-ink">
-                {choice === "owner"
-                  ? "تسجيل الدخول لصاحب الموكب"
-                  : mode === "login"
-                    ? "تسجيل الدخول للمتبرع"
-                    : "إنشاء حساب متبرع جديد"}
+                {mode === "recover"
+                  ? "استعادة الحساب"
+                  : choice === "owner"
+                    ? "تسجيل الدخول لصاحب الموكب"
+                    : mode === "login"
+                      ? "تسجيل الدخول للمتبرع"
+                      : "إنشاء حساب متبرع جديد"}
               </h2>
-              {choice === "donor" ? (
+              {choice === "donor" && mode !== "recover" ? (
                 <div className="flex rounded-lg bg-secondary p-1">
                   {(["login", "register"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setMode(m)}
+                      onClick={() => {
+                        setMode(m);
+                        setDuplicate(false);
+                      }}
                       className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-colors ${
                         mode === m ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                       }`}
@@ -243,11 +248,48 @@ function WelcomePage() {
                   ))}
                 </div>
               ) : null}
-              {choice === "donor" && mode === "register" ? (
+
+              {duplicate ? (
+                <div className="space-y-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm text-ink">
+                  <p className="font-semibold">هذا الرقم مرتبط بحساب موجود مسبقاً.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("login");
+                        setDuplicate(false);
+                      }}
+                      className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                    >
+                      تسجيل الدخول
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void openRecovery()}
+                      className="flex-1 rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary"
+                    >
+                      استعادة الحساب
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {mode === "recover" ? (
+                <p className="rounded-lg bg-secondary p-3 text-xs leading-relaxed text-muted-foreground">
+                  {recoveryStatus === "approved"
+                    ? "تمت الموافقة على طلبك — ضع رمز دخول جديد لحسابك نفسه، وستبقى كل مواكبك وسجل تبرعاتك كما هي."
+                    : recoveryStatus === "pending"
+                      ? "طلبك قيد المراجعة لدى الإدارة. تواصل معهم للتحقق من هويتك ثم عد إلى هذه الصفحة."
+                      : "أدخل رقم هاتفك لإرسال طلب استعادة إلى الإدارة. بعد التحقق من هويتك ستضع رمز دخول جديد لنفس الحساب دون فقدان أي بيانات."}
+                </p>
+              ) : null}
+
+              {(choice === "donor" && mode === "register") ||
+              (mode === "recover" && recoveryStatus === "idle") ? (
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-ink">الاسم الكامل</span>
                   <input
-                    required
+                    required={mode === "register"}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="الاسم الثلاثي"
@@ -266,31 +308,64 @@ function WelcomePage() {
                   className={inputCls}
                 />
               </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-ink">رمز الدخول</span>
-                <input
-                  required
-                  type="password"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="الرمز المزوّد من الإدارة"
-                  className={inputCls}
-                />
-              </label>
+              {mode !== "recover" || recoveryStatus === "approved" ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    {mode === "recover" ? "رمز الدخول الجديد" : "رمز الدخول"}
+                  </span>
+                  <input
+                    required
+                    type="password"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="رمز خاص بك لا يقل عن ٦ خانات"
+                    className={inputCls}
+                  />
+                </label>
+              ) : null}
               <button
                 type="submit"
                 disabled={busy}
                 className="gradient-emerald flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] disabled:opacity-70"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {choice === "donor" && mode === "register" ? "إنشاء الحساب" : "تسجيل الدخول"}
+                {mode === "recover"
+                  ? recoveryStatus === "approved"
+                    ? "حفظ الرمز الجديد"
+                    : recoveryStatus === "pending"
+                      ? "تحديث حالة الطلب"
+                      : "إرسال طلب الاستعادة"
+                  : choice === "donor" && mode === "register"
+                    ? "إنشاء الحساب"
+                    : "تسجيل الدخول"}
               </button>
+              {mode === "recover" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("login");
+                    setRecoveryStatus("idle");
+                  }}
+                  className="w-full text-center text-[11px] font-semibold text-muted-foreground hover:text-primary"
+                >
+                  ← رجوع لتسجيل الدخول
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void openRecovery()}
+                  className="w-full text-center text-[11px] font-semibold text-muted-foreground hover:text-primary"
+                >
+                  نسيت رمز الدخول؟ استعادة الحساب
+                </button>
+              )}
               <p className="text-center text-[11px] text-muted-foreground">
                 {choice === "donor"
-                  ? "بعد إنشاء الحساب اختر المواكب التي تود التبرع لها."
+                  ? "حساب واحد يكفي لكل المواكب — بعد الدخول اختر المواكب التي تود التبرع لها."
                   : "حسابات أصحاب المواكب تُنشأ من قبل إدارة التطبيق فقط."}
               </p>
             </form>
+
           </div>
         )}
       </div>
