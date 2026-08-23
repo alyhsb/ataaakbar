@@ -34,7 +34,9 @@ export type Mawkib = {
   area: string;
   phone: string;
   description: string;
+  disabledAt?: string | undefined;
 };
+
 
 export type AmountChangeRequest = {
   id: string;
