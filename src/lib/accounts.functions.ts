@@ -54,7 +54,7 @@ async function resolveCaller(context: {
   };
 }
 
-/** Creates a donor record together with its phone + access code login. */
+/** Creates a donor record only; the donor sets their own private access code on sign-up. */
 export const createDonorWithAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => donorInput.parse(input))
@@ -114,7 +114,7 @@ export const createDonorWithAccount = createServerFn({ method: "POST" })
     return { donorId: donor.id as string };
   });
 
-/** Admin / mawkib owner: changes a donor's name, phone or access code. */
+/** Admin / mawkib owner: changes a donor's name or phone (never their access code). */
 export const updateDonorCredentials = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
