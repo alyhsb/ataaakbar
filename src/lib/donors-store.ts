@@ -878,14 +878,16 @@ export function isOverdue(d: Donor) {
 
 /** Records the donor's sign-in time (best effort). */
 export async function recordDonorLogin(userId: string) {
+  const at = new Date().toISOString();
+  await supabase.from("profiles").update({ last_login_at: at }).eq("id", userId);
   const donor = donors.find((d) => d.userId === userId);
   if (!donor) return;
-  const at = new Date().toISOString();
   const { error } = await supabase.from("donors").update({ last_login_at: at }).eq("id", donor.id);
   if (error) return;
   donors = donors.map((d) => (d.id === donor.id ? { ...d, lastLoginAt: at } : d));
   emit();
 }
+
 
 /** Headline numbers for the current month only. */
 export function monthStats() {
