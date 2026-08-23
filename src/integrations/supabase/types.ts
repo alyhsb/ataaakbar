@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_recovery_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          note: string | null
+          phone: string
+          requester_name: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          phone: string
+          requester_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          note?: string | null
+          phone?: string
+          requester_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       amount_change_requests: {
         Row: {
           created_at: string
@@ -175,6 +214,7 @@ export type Database = {
           area: string
           created_at: string
           description: string
+          disabled_at: string | null
           id: string
           name: string
           phone: string
@@ -183,6 +223,7 @@ export type Database = {
           area?: string
           created_at?: string
           description?: string
+          disabled_at?: string | null
           id?: string
           name: string
           phone?: string
@@ -191,6 +232,7 @@ export type Database = {
           area?: string
           created_at?: string
           description?: string
+          disabled_at?: string | null
           id?: string
           name?: string
           phone?: string
@@ -304,9 +346,11 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          last_login_at: string | null
           location: string | null
           mawkib_id: string | null
           phone: string | null
+          status: string
         }
         Insert: {
           area?: string | null
@@ -314,9 +358,11 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          last_login_at?: string | null
           location?: string | null
           mawkib_id?: string | null
           phone?: string | null
+          status?: string
         }
         Update: {
           area?: string | null
@@ -324,9 +370,11 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          last_login_at?: string | null
           location?: string | null
           mawkib_id?: string | null
           phone?: string | null
+          status?: string
         }
         Relationships: [
           {
