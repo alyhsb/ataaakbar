@@ -109,7 +109,31 @@ function MembershipPage() {
         <div className="surface-card p-5">
           <p className="text-sm text-muted-foreground">الاستحقاق القادم</p>
           <p className="font-display text-lg font-bold text-ink">{nextDueDate(donor)}</p>
+      </div>
+
+      <section className="surface-card mt-6 p-5">
+        <h2 className="font-display text-lg font-bold text-ink">إجمالي تبرعاتي لهذا الموكب</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          منذ انضمامك إلى {mawkibName(donor.mawkibId)} — لا تُحتسب ضمنه تبرعاتك لمواكب أخرى.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg bg-secondary px-4 py-3">
+            <p className="text-xs text-muted-foreground">التبرعات الشهرية المدفوعة</p>
+            <p className="font-display text-xl font-bold text-primary">{formatIQD(paidTotal)}</p>
+          </div>
+          <div className="rounded-lg bg-secondary px-4 py-3">
+            <p className="text-xs text-muted-foreground">مساهمات الأهداف المستقبلية</p>
+            <p className="font-display text-xl font-bold text-gold">{formatIQD(goalTotal)}</p>
+          </div>
+          <div className="gradient-emerald rounded-lg px-4 py-3">
+            <p className="text-xs text-primary-foreground/80">إجمالي مساهماتي في هذا الموكب</p>
+            <p className="font-display text-xl font-bold text-primary-foreground">
+              {formatIQD(paidTotal + goalTotal)}
+            </p>
+          </div>
         </div>
+      </section>
+
       </div>
 
       <section className="surface-card mt-6 p-5">
