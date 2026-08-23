@@ -64,7 +64,7 @@ const themes: { key: ThemeMode; label: string; icon: React.ComponentType<{ class
 ];
 
 export function SettingsPanel() {
-  const { userId, email: authEmail, role } = useAuth();
+  const { userId, role } = useAuth();
   useStoreLoaded();
   const donor = useDonorByUser(userId ?? undefined);
   const mode = useThemeMode();
