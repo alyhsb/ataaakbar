@@ -70,7 +70,12 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { role } = useAuth();
   const isManager = role === "admin" || role === "owner";
-  const nav = isManager ? (role === "admin" ? [...adminNav, ownerNav] : adminNav) : donorNav;
+  const nav: readonly { to: string; label: string; icon: typeof Users }[] = isManager
+    ? role === "admin"
+      ? [...managerNav, ...adminOnlyNav]
+      : managerNav
+    : donorNav;
+
 
   return (
     <div dir="rtl" className="min-h-screen bg-background lg:flex">
