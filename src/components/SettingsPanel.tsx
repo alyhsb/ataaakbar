@@ -69,22 +69,16 @@ export function SettingsPanel() {
   const donor = useDonorByUser(userId ?? undefined);
   const mode = useThemeMode();
 
-  const [phone, setPhone] = useState("");
   const [area, setArea] = useState("");
   const [location, setLocation] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const isManager = role === "admin" || role === "owner";
 
   useEffect(() => {
-    setPhone(donor?.phone ?? "");
     setArea(donor?.area ?? "");
     setLocation(donor?.location ?? "");
-  }, [donor?.phone, donor?.area, donor?.location]);
-
-  useEffect(() => {
-    setEmail(authEmail?.endsWith("@ataa.local") ? "" : (authEmail ?? ""));
-  }, [authEmail]);
+  }, [donor?.area, donor?.location]);
 
   async function saveAccount(e: React.FormEvent) {
     e.preventDefault();
@@ -92,16 +86,10 @@ export function SettingsPanel() {
     setBusy(true);
     try {
       if (donor) {
-        await updateOwnDonorInfo(donor.id, { phone: phone.trim(), area: area.trim(), location: location.trim() });
+        await updateOwnDonorInfo(donor.id, { area: area.trim(), location: location.trim() });
       }
-      const trimmedEmail = email.trim();
-      if (trimmedEmail && trimmedEmail !== authEmail) {
-        const { error } = await supabase.auth.updateUser({ email: trimmedEmail });
-        if (error) throw error;
-        toast.info("أرسلنا رسالة تأكيد إلى بريدك الجديد");
-      }
-      if (password) {
-        if (password.length < 6) throw new Error("كلمة المرور يجب أن تكون ٦ أحرف على الأقل");
+      if (isManager && password) {
+        if (password.length < 6) throw new Error("رمز الدخول يجب أن يكون ٦ خانات على الأقل");
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
         setPassword("");
@@ -138,54 +126,66 @@ export function SettingsPanel() {
           <Section icon={UserRound} title="معلومات الحساب">
             <form className="space-y-3" onSubmit={saveAccount}>
               {donor ? (
-                <Field label="الاسم الكامل">
-                  <input value={donor.name} readOnly className={`${inputCls} bg-secondary text-muted-foreground`} />
-                </Field>
-              ) : null}
-              {donor && role !== "admin" ? (
-                <p className="text-[11px] text-muted-foreground">
-                  لا يمكن تعديل الاسم الكامل إلا من قبل مسؤول الموكب.
-                </p>
-              ) : null}
-              {donor ? (
                 <>
-                  <Field label="رقم الهاتف">
-                    <input value={phone} inputMode="tel" onChange={(e) => setPhone(e.target.value)} className={inputCls} />
+                  <Field label="الاسم الكامل">
+                    <input
+                      value={donor.name}
+                      readOnly
+                      className={`${inputCls} bg-secondary text-muted-foreground`}
+                    />
                   </Field>
+                  <Field label="رقم الهاتف">
+                    <input
+                      value={donor.phone}
+                      readOnly
+                      dir="ltr"
+                      className={`${inputCls} bg-secondary text-muted-foreground`}
+                    />
+                  </Field>
+                  <Field label="رمز الدخول">
+                    <input
+                      value={donor.accessCode ?? "—"}
+                      readOnly
+                      dir="ltr"
+                      className={`${inputCls} bg-secondary text-muted-foreground`}
+                    />
+                  </Field>
+                  <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                    لتغيير رقم الهاتف أو رمز الدخول، يرجى التواصل مع إدارة التطبيق.
+                  </p>
                   <Field label="المنطقة">
                     <input value={area} onChange={(e) => setArea(e.target.value)} className={inputCls} />
                   </Field>
                   <Field label="العنوان">
-                    <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputCls} />
+                    <input
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className={inputCls}
+                    />
                   </Field>
                 </>
               ) : null}
-              <Field label="البريد الإلكتروني">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@mail.com"
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="كلمة مرور جديدة">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="اتركها فارغة لعدم التغيير"
-                  className={inputCls}
-                />
-              </Field>
-              <button
-                type="submit"
-                disabled={busy}
-                className="gradient-emerald flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-70"
-              >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                حفظ التغييرات
-              </button>
+              {isManager ? (
+                <Field label="رمز دخول جديد لحسابك">
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="اتركه فارغاً لعدم التغيير"
+                    className={inputCls}
+                  />
+                </Field>
+              ) : null}
+              {donor || isManager ? (
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="gradient-emerald flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-70"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  حفظ التغييرات
+                </button>
+              ) : null}
             </form>
           </Section>
 

@@ -16,6 +16,7 @@ import { Route as AuthenticatedDonorRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDonorsIndexRouteImport } from './routes/_authenticated/donors.index'
 import { Route as AuthenticatedDonorsDonorIdRouteImport } from './routes/_authenticated/donors.$donorId'
 import { Route as AuthenticatedDonorsNewRouteImport } from './routes/_authenticated/donors.new'
+import { Route as AuthenticatedOwnersNewRouteImport } from './routes/_authenticated/owners.new'
 import { Route as AuthenticatedDonorsEditDonorIdRouteImport } from './routes/_authenticated/donors.edit.$donorId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -54,6 +55,11 @@ const AuthenticatedDonorsNewRoute = AuthenticatedDonorsNewRouteImport.update({
   path: '/donors/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOwnersNewRoute = AuthenticatedOwnersNewRouteImport.update({
+  id: '/owners/new',
+  path: '/owners/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDonorsEditDonorIdRoute =
   AuthenticatedDonorsEditDonorIdRouteImport.update({
     id: '/donors/edit/$donorId',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/donor': typeof AuthenticatedDonorRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
+  '/owners/new': typeof AuthenticatedOwnersNewRoute
   '/donors/': typeof AuthenticatedDonorsIndexRoute
   '/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/donor': typeof AuthenticatedDonorRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
+  '/owners/new': typeof AuthenticatedOwnersNewRoute
   '/donors': typeof AuthenticatedDonorsIndexRoute
   '/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/_authenticated/donor': typeof AuthenticatedDonorRoute
   '/_authenticated/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/_authenticated/donors/new': typeof AuthenticatedDonorsNewRoute
+  '/_authenticated/owners/new': typeof AuthenticatedOwnersNewRoute
   '/_authenticated/donors/': typeof AuthenticatedDonorsIndexRoute
   '/_authenticated/donors/edit/$donorId': typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/donor'
     | '/donors/$donorId'
     | '/donors/new'
+    | '/owners/new'
     | '/donors/'
     | '/donors/edit/$donorId'
   fileRoutesByTo: FileRoutesByTo
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/donor'
     | '/donors/$donorId'
     | '/donors/new'
+    | '/owners/new'
     | '/donors'
     | '/donors/edit/$donorId'
   id:
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/_authenticated/donor'
     | '/_authenticated/donors/$donorId'
     | '/_authenticated/donors/new'
+    | '/_authenticated/owners/new'
     | '/_authenticated/donors/'
     | '/_authenticated/donors/edit/$donorId'
   fileRoutesById: FileRoutesById
@@ -177,6 +189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDonorsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/owners/new': {
+      id: '/_authenticated/owners/new'
+      path: '/owners/new'
+      fullPath: '/owners/new'
+      preLoaderRoute: typeof AuthenticatedOwnersNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/donors/edit/$donorId': {
       id: '/_authenticated/donors/edit/$donorId'
       path: '/donors/edit/$donorId'
@@ -192,6 +211,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDonorRoute: typeof AuthenticatedDonorRoute
   AuthenticatedDonorsDonorIdRoute: typeof AuthenticatedDonorsDonorIdRoute
   AuthenticatedDonorsNewRoute: typeof AuthenticatedDonorsNewRoute
+  AuthenticatedOwnersNewRoute: typeof AuthenticatedOwnersNewRoute
   AuthenticatedDonorsIndexRoute: typeof AuthenticatedDonorsIndexRoute
   AuthenticatedDonorsEditDonorIdRoute: typeof AuthenticatedDonorsEditDonorIdRoute
 }
@@ -201,6 +221,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDonorRoute: AuthenticatedDonorRoute,
   AuthenticatedDonorsDonorIdRoute: AuthenticatedDonorsDonorIdRoute,
   AuthenticatedDonorsNewRoute: AuthenticatedDonorsNewRoute,
+  AuthenticatedOwnersNewRoute: AuthenticatedOwnersNewRoute,
   AuthenticatedDonorsIndexRoute: AuthenticatedDonorsIndexRoute,
   AuthenticatedDonorsEditDonorIdRoute: AuthenticatedDonorsEditDonorIdRoute,
 }
