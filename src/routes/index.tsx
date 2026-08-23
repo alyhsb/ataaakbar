@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, Heart, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/lib/auth";
 import { APP_NAME } from "@/lib/app-info";
 
@@ -14,39 +13,40 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "منصة عطاء الأكبر لإدارة التبرعات الشهرية للموكب الحسيني: تسجيل المتبرعين ومتابعة الدفعات الشهرية بسهولة.",
+          "منصة عطاء الأكبر لإدارة التبرعات الشهرية للموكب الحسيني: تسجيل الدخول برقم الهاتف ورمز الدخول.",
       },
       { property: "og:title", content: "عطاء الأكبر — إدارة التبرعات الشهرية للموكب الحسيني" },
       {
         property: "og:description",
-        content: "سجّل الدخول لإدارة المتبرعين ومتابعة الدفعات الشهرية للموكب.",
+        content: "سجّل الدخول برقم الهاتف ورمز الدخول لمتابعة تبرعات الموكب.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: LoginPage,
+  component: WelcomePage,
 });
 
-function toLoginEmail(value: string) {
-  const trimmed = value.trim();
-  if (trimmed.includes("@")) return trimmed;
-  return `${trimmed.replace(/\D/g, "")}@ataa.local`;
+type Choice = "donor" | "owner";
+
+const inputCls =
+  "w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+
+function toLoginEmail(phone: string) {
+  return `${phone.replace(/\D/g, "")}@ataa.local`;
 }
 
-function LoginPage() {
+function WelcomePage() {
   const navigate = useNavigate();
   const { ready, userId, role } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [choice, setChoice] = useState<Choice | null>(null);
   const [phone, setPhone] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (ready && userId && role) {
-      navigate({ to: role === "admin" ? "/admin" : "/donor", replace: true });
+      navigate({ to: role === "donor" ? "/donor" : "/admin", replace: true });
     }
   }, [ready, userId, role, navigate]);
 
@@ -55,208 +55,140 @@ function LoginPage() {
     if (busy) return;
     setBusy(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: toLoginEmail(identifier),
-          password,
-        });
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: name, phone },
-          },
-        });
-        if (error) throw error;
-        if (!data.session) {
-          setPending(true);
-          toast.success("تم إنشاء الحساب، تحقق من بريدك لتفعيله");
-        }
-      }
+      const digits = phone.replace(/\D/g, "");
+      if (digits.length < 7) throw new Error("رقم هاتف غير صالح");
+      const { error } = await supabase.auth.signInWithPassword({
+        email: toLoginEmail(phone),
+        password: accessCode,
+      });
+      if (error) throw new Error("رقم الهاتف أو رمز الدخول غير صحيح");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "تعذّر إتمام العملية");
+      toast.error(err instanceof Error ? err.message : "تعذّر تسجيل الدخول");
     } finally {
       setBusy(false);
     }
   }
 
-  async function onGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("تعذّر تسجيل الدخول عبر Google");
-    }
-  }
-
   return (
-    <div dir="rtl" className="grid min-h-screen lg:grid-cols-2">
-      <div className="gradient-emerald relative hidden flex-col justify-between p-12 lg:flex">
-        <div className="flex items-center gap-3">
-          <span className="gradient-gold flex h-11 w-11 items-center justify-center rounded-xl font-display text-xl font-bold text-gold-foreground">
+    <div dir="rtl" className="min-h-screen bg-background">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <span className="gradient-gold flex h-16 w-16 items-center justify-center rounded-2xl font-display text-3xl font-bold text-gold-foreground">
             ع
           </span>
-          <span className="font-display text-2xl font-bold text-primary-foreground">{APP_NAME}</span>
-        </div>
-        <div>
-          <h2 className="max-w-md font-display text-4xl leading-tight font-bold text-primary-foreground">
-            نظام إدارة التبرعات الشهرية <span className="text-gradient-gold">للموكب الحسيني</span>
-          </h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/75">
-            سجّل المتبرعين، تابع الاشتراكات الشهرية، واعرف حالة كل دفعة في مكان واحد منظم وواضح.
-          </p>
-        </div>
-        <p className="text-xs text-primary-foreground/60">
-          «وما تقدّموا لأنفسكم من خيرٍ تجدوه عند الله»
-        </p>
-      </div>
-
-      <div className="flex items-center justify-center px-5 py-12">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="gradient-gold flex h-10 w-10 items-center justify-center rounded-xl font-display text-lg font-bold text-gold-foreground">
-              ع
-            </span>
-            <span className="font-display text-xl font-bold text-ink">{APP_NAME}</span>
-          </div>
-
-          <h1 className="font-display text-2xl font-bold text-ink">
-            {mode === "signin" ? "تسجيل الدخول" : "إنشاء حساب متبرع"}
-          </h1>
+          <h1 className="mt-4 font-display text-3xl font-bold text-ink">{APP_NAME}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "أدخل بياناتك للمتابعة إلى النظام" : "سجّل بياناتك للانضمام إلى الموكب"}
+            نظام إدارة التبرعات الشهرية للمواكب الحسينية
           </p>
+        </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-secondary p-1">
-            {(
-              [
-                { key: "signin", label: "دخول" },
-                { key: "signup", label: "حساب جديد" },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setMode(t.key)}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  mode === t.key
-                    ? "bg-card text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+        {choice === null ? (
+          <div className="space-y-3">
+            <p className="mb-4 text-center text-sm font-medium text-ink">اختر نوع الحساب للمتابعة</p>
+            <button
+              type="button"
+              onClick={() => setChoice("donor")}
+              className="gradient-emerald flex w-full items-center justify-between rounded-2xl px-5 py-6 text-primary-foreground shadow-[var(--shadow-soft)]"
+            >
+              <span className="flex items-center gap-3">
+                <Heart className="h-6 w-6" />
+                <span className="font-display text-xl font-bold">المتبرع</span>
+              </span>
+              <ArrowRight className="h-5 w-5 rotate-180" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setChoice("owner")}
+              className="surface-card flex w-full items-center justify-between rounded-2xl border border-gold/40 px-5 py-6 text-ink"
+            >
+              <span className="flex items-center gap-3">
+                <ShieldCheck className="h-6 w-6 text-gold" />
+                <span className="font-display text-xl font-bold">صاحب الموكب</span>
+              </span>
+              <ArrowRight className="h-5 w-5 rotate-180 text-muted-foreground" />
+            </button>
           </div>
+        ) : (
+          <div className="space-y-5">
+            <button
+              type="button"
+              onClick={() => setChoice(null)}
+              className="text-xs font-semibold text-muted-foreground hover:text-primary"
+            >
+              ← رجوع لاختيار نوع الحساب
+            </button>
 
-          {pending ? (
-            <div className="mt-6 rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
-              أرسلنا رابط التفعيل إلى بريدك الإلكتروني. بعد التفعيل يمكنك تسجيل الدخول.
-            </div>
-          ) : null}
-
-          <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-            {mode === "signup" ? (
-              <>
-                <div>
-                  <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-ink">
-                    الاسم الكامل
-                  </label>
-                  <input
-                    id="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-ink">
-                    رقم الهاتف
-                  </label>
-                  <input
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </>
-            ) : null}
-            {mode === "signin" ? (
-              <div>
-                <label htmlFor="identifier" className="mb-1.5 block text-sm font-medium text-ink">
-                  رقم الهاتف أو البريد الإلكتروني
-                </label>
-                <input
-                  id="identifier"
-                  required
-                  inputMode="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
+            {choice === "donor" ? (
+              <div className="surface-card space-y-2 p-5 text-sm leading-relaxed text-muted-foreground">
+                <p className="font-display text-base font-bold text-ink">أهلاً بك في عطاء الأكبر</p>
+                <p>
+                  يمكنك تسجيل الدخول باستخدام رقم الهاتف ورمز الدخول اللذين تم تزويدك بهما من إدارة
+                  الموكب.
+                </p>
               </div>
             ) : (
-              <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-ink">
-                  البريد الإلكتروني
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
+              <div className="surface-card space-y-2 p-5 text-sm leading-relaxed text-muted-foreground">
+                <p className="font-display text-base font-bold text-ink">
+                  أهلاً بك في تطبيق عطاء الأكبر
+                </p>
+                <p>
+                  تطبيق عطاء الأكبر هو نظام مخصص لإدارة وتنظيم التبرعات الخاصة بالمواكب والهيئات
+                  الحسينية، ويساعد على تنظيم بيانات المتبرعين ومتابعة التبرعات الشهرية بطريقة سهلة
+                  ومنظمة.
+                </p>
+                <p>
+                  إذا كنت صاحب هيئة أو موكب حسيني وترغب باستخدام التطبيق لإدارة تبرعات موكبك، يمكنك
+                  التواصل معنا للحصول على حساب خاص بموكبك.
+                </p>
+                <p className="text-ink">
+                  للتواصل والاستفسار:{" "}
+                  <a href="tel:07722905522" className="font-semibold text-primary" dir="ltr">
+                    07722905522
+                  </a>
+                </p>
               </div>
             )}
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-ink">
-                كلمة المرور
+
+            <form className="surface-card space-y-4 p-5" onSubmit={onSubmit}>
+              <h2 className="font-display text-lg font-bold text-ink">
+                {choice === "donor" ? "تسجيل الدخول للمتبرع" : "تسجيل الدخول لصاحب الموكب"}
+              </h2>
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-ink">رقم الهاتف</span>
+                <input
+                  required
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="07XX XXX XXXX"
+                  className={inputCls}
+                />
               </label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={busy}
-              className="gradient-emerald flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] disabled:opacity-70"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {mode === "signin" ? "دخول" : "إنشاء الحساب"}
-            </button>
-          </form>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            أو
-            <span className="h-px flex-1 bg-border" />
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-ink">رمز الدخول</span>
+                <input
+                  required
+                  type="password"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  placeholder="الرمز المزوّد من الإدارة"
+                  className={inputCls}
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={busy}
+                className="gradient-emerald flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] disabled:opacity-70"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                تسجيل الدخول
+              </button>
+              <p className="text-center text-[11px] text-muted-foreground">
+                الحسابات تُنشأ من قبل إدارة الموكب فقط، لا يوجد تسجيل ذاتي.
+              </p>
+            </form>
           </div>
-
-          <button
-            type="button"
-            onClick={onGoogle}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-card py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-secondary"
-          >
-            المتابعة باستخدام Google
-          </button>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            بياناتك محفوظة بأمان وتُستخدم فقط لإدارة تبرعات الموكب.
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );

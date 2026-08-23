@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, UserPlus, Heart, WifiOff } from "lucide-react";
+import { LayoutDashboard, Users, UserPlus, Heart, WifiOff, ShieldPlus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -10,6 +10,8 @@ const adminNav = [
   { to: "/donors", label: "قائمة المتبرعين", icon: Users },
   { to: "/donors/new", label: "إضافة متبرع", icon: UserPlus },
 ] as const;
+
+const ownerNav = { to: "/owners/new", label: "إضافة صاحب موكب", icon: ShieldPlus } as const;
 
 const donorNav = [{ to: "/donor", label: "بوابة المتبرع", icon: Heart }] as const;
 
@@ -47,12 +49,13 @@ export function AppShell({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { role } = useAuth();
-  const nav = role === "admin" ? adminNav : donorNav;
+  const isManager = role === "admin" || role === "owner";
+  const nav = isManager ? (role === "admin" ? [...adminNav, ownerNav] : adminNav) : donorNav;
 
   return (
     <div dir="rtl" className="min-h-screen bg-background lg:flex">
       <aside className="gradient-emerald sticky top-0 z-20 flex items-center gap-2 overflow-x-auto px-4 py-3 lg:h-screen lg:w-64 lg:flex-col lg:items-stretch lg:gap-1 lg:overflow-visible lg:px-4 lg:py-6">
-        <Link to={role === "admin" ? "/admin" : "/donor"} className="hidden items-center gap-3 px-2 pb-8 lg:flex">
+        <Link to={isManager ? "/admin" : "/donor"} className="hidden items-center gap-3 px-2 pb-8 lg:flex">
           <span className="gradient-gold flex h-10 w-10 items-center justify-center rounded-xl font-display text-lg font-bold text-gold-foreground">
             ع
           </span>

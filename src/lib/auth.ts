@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadAll, resetStore, recordDonorLogin } from "@/lib/donors-store";
 
-export type AppRole = "admin" | "donor";
+export type AppRole = "admin" | "owner" | "donor";
 
 type AuthState = {
   ready: boolean;
@@ -31,7 +31,11 @@ async function applySession(userId: string | null, email: string | null) {
   }
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const roles = (data ?? []).map((r) => r.role as AppRole);
-  const role: AppRole = roles.includes("admin") ? "admin" : "donor";
+  const role: AppRole = roles.includes("admin")
+    ? "admin"
+    : roles.includes("owner")
+      ? "owner"
+      : "donor";
   state = { ready: true, userId, email, role };
   emit();
   await loadAll();
