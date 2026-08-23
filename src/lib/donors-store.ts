@@ -34,7 +34,9 @@ export type Mawkib = {
   area: string;
   phone: string;
   description: string;
+  disabledAt?: string | undefined;
 };
+
 
 export type AmountChangeRequest = {
   id: string;
@@ -235,7 +237,11 @@ export async function loadAll() {
     area: (r.area as string) ?? "",
     phone: (r.phone as string) ?? "",
     description: ((r as { description?: string }).description ?? "") as string,
+    disabledAt: ((r as { disabled_at?: string | null }).disabled_at ?? undefined) as
+      | string
+      | undefined,
   }));
+
   amountRequests = (ar.data ?? []).map((r) => ({
     id: r.id as string,
     donorId: r.donor_id as string,
@@ -872,14 +878,16 @@ export function isOverdue(d: Donor) {
 
 /** Records the donor's sign-in time (best effort). */
 export async function recordDonorLogin(userId: string) {
+  const at = new Date().toISOString();
+  await supabase.from("profiles").update({ last_login_at: at }).eq("id", userId);
   const donor = donors.find((d) => d.userId === userId);
   if (!donor) return;
-  const at = new Date().toISOString();
   const { error } = await supabase.from("donors").update({ last_login_at: at }).eq("id", donor.id);
   if (error) return;
   donors = donors.map((d) => (d.id === donor.id ? { ...d, lastLoginAt: at } : d));
   emit();
 }
+
 
 /** Headline numbers for the current month only. */
 export function monthStats() {
@@ -1059,4 +1067,85 @@ export async function decideAmountRequest(requestId: string, approve: boolean, u
       ? `أصبح مبلغ تبرعك الشهري ${formatIQD(req.requestedAmount)} بدلاً من ${formatIQD(req.currentAmount)}.`
       : `تم رفض طلبك بتغيير المبلغ إلى ${formatIQD(req.requestedAmount)}، ويبقى المبلغ ${formatIQD(req.currentAmount)}.`,
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Mawakib management (main admin)                                     */
+/* ------------------------------------------------------------------ */
+
+/** Mawakib open for new join requests. */
+export function useActiveMawakib() {
+  return useMawakib().filter((m) => !m.disabledAt);
+}
+
+export async function createMawkib(input: {
+  name: string;
+  area?: string;
+  phone?: string;
+  description?: string;
+}) {
+  const { data, error } = await supabase
+    .from("mawakib")
+    .insert({
+      name: input.name,
+      area: input.area ?? "",
+      phone: input.phone ?? "",
+      description: input.description ?? "",
+    })
+    .select()
+    .single();
+  if (error) throw new Error(errorMessage(error));
+  mawakib = [
+    ...mawakib,
+    {
+      id: data.id as string,
+      name: data.name as string,
+      area: (data.area as string) ?? "",
+      phone: (data.phone as string) ?? "",
+      description: ((data as { description?: string }).description ?? "") as string,
+    },
+  ].sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  emit();
+}
+
+export async function updateMawkib(
+  id: string,
+  input: { name?: string; area?: string; phone?: string; description?: string },
+) {
+  const { error } = await supabase.from("mawakib").update(input).eq("id", id);
+  if (error) throw new Error(errorMessage(error));
+  mawakib = mawakib.map((m) => (m.id === id ? { ...m, ...input } : m));
+  emit();
+}
+
+/** Disables a mawkib (hidden from new join requests) or restores it. */
+export async function setMawkibDisabled(id: string, disabled: boolean) {
+  const disabledAt = disabled ? new Date().toISOString() : null;
+  const { error } = await supabase.from("mawakib").update({ disabled_at: disabledAt }).eq("id", id);
+  if (error) throw new Error(errorMessage(error));
+  mawakib = mawakib.map((m) => (m.id === id ? { ...m, disabledAt: disabledAt ?? undefined } : m));
+  emit();
+}
+
+/** Stats of one mawkib (main admin overview). */
+export function mawkibStats(mawkibId: string) {
+  const members = donors.filter(
+    (d) => d.mawkibId === mawkibId && !d.deletedAt && d.membershipStatus === "active",
+  );
+  const ids = new Set(members.map((d) => d.id));
+  const related = payments.filter((p) => ids.has(p.donorId));
+  const collected = related.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
+  return {
+    donors: members.length,
+    pending: donors.filter(
+      (d) => d.mawkibId === mawkibId && !d.deletedAt && d.membershipStatus === "pending",
+    ).length,
+    expectedMonthly: members.reduce((s, d) => s + d.monthlyAmount, 0),
+    collected,
+  };
+}
+
+/** Memberships of one donor account, including removed ones (history). */
+export function useMembershipHistory(userId: string | undefined) {
+  return useAllDonors().filter((d) => d.userId === userId);
 }
