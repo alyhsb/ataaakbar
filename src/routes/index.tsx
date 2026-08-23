@@ -5,6 +5,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { APP_NAME } from "@/lib/app-info";
+import {
+  requestAccountRecovery,
+  checkAccountRecovery,
+  completeAccountRecovery,
+} from "@/lib/users.functions";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
