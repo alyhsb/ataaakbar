@@ -162,10 +162,10 @@ export const updateDonorCredentials = createServerFn({ method: "POST" })
     const phone = data.phone ?? (donor.phone as string);
     const accessCode = data.accessCode ?? (donor.access_code as string | null) ?? "";
 
-    const patch: Record<string, string> = {};
-    if (data.name) patch['name'] = data.name;
-    if (data.phone) patch['phone'] = data.phone;
-    if (data.accessCode) patch['access_code'] = data.accessCode;
+    const patch: { name?: string; phone?: string; access_code?: string } = {};
+    if (data.name) patch.name = data.name;
+    if (data.phone) patch.phone = data.phone;
+    if (data.accessCode) patch.access_code = data.accessCode;
     if (Object.keys(patch).length > 0) {
       const { error } = await supabaseAdmin.from("donors").update(patch).eq("id", donor.id);
       if (error) {
