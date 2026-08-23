@@ -38,11 +38,6 @@ function DonorDashboard() {
   const loaded = useStoreLoaded();
   const donor = useDonorByUser(userId ?? undefined);
   const payments = useDonorPayments(donor?.id ?? "");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (donor && !donor.profileCompleted) navigate({ to: "/complete-profile", replace: true });
-  }, [donor, navigate]);
 
   if (!donor) {
     return (
