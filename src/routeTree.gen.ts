@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedMawakibRouteImport } from './routes/_authenticated/mawakib'
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedDonorIndexRouteImport } from './routes/_authenticated/donor.index'
@@ -35,6 +36,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMawakibRoute = AuthenticatedMawakibRouteImport.update({
+  id: '/mawakib',
+  path: '/mawakib',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
@@ -96,6 +102,7 @@ const AuthenticatedDonorsEditDonorIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/mawakib': typeof AuthenticatedMawakibRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/donor/browse': typeof AuthenticatedDonorBrowseRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/mawakib': typeof AuthenticatedMawakibRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/donor/browse': typeof AuthenticatedDonorBrowseRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/mawakib': typeof AuthenticatedMawakibRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/donor/browse': typeof AuthenticatedDonorBrowseRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/mawakib'
     | '/requests'
     | '/users'
     | '/donor/browse'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/mawakib'
     | '/requests'
     | '/users'
     | '/donor/browse'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/admin'
+    | '/_authenticated/mawakib'
     | '/_authenticated/requests'
     | '/_authenticated/users'
     | '/_authenticated/donor/browse'
@@ -209,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mawakib': {
+      id: '/_authenticated/mawakib'
+      path: '/mawakib'
+      fullPath: '/mawakib'
+      preLoaderRoute: typeof AuthenticatedMawakibRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/requests': {
@@ -286,6 +305,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedMawakibRoute: typeof AuthenticatedMawakibRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedDonorBrowseRoute: typeof AuthenticatedDonorBrowseRoute
@@ -300,6 +320,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedMawakibRoute: AuthenticatedMawakibRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedDonorBrowseRoute: AuthenticatedDonorBrowseRoute,
