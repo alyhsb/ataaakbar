@@ -20,6 +20,7 @@ const managerNav = [
   { to: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
   { to: "/donors", label: "متبرعو الموكب", icon: Users },
   { to: "/donors/new", label: "إضافة متبرع", icon: UserPlus },
+  { to: "/content", label: "أهداف ومنشورات", icon: Target },
   { to: "/requests", label: "طلبات المتبرعين", icon: Inbox },
   { to: "/recovery", label: "استعادة الحسابات", icon: KeyRound },
 ] as const;
@@ -29,10 +30,8 @@ const adminOnlyNav = [
   { to: "/mawakib", label: "المواكب", icon: Building2 },
 ] as const;
 
-const donorNav = [
-  { to: "/donor", label: "مواكبي", icon: Heart },
-  { to: "/donor/browse", label: "إضافة موكب", icon: Plus },
-] as const;
+const donorNav = [{ to: "/donor", label: "مواكبي", icon: Heart }] as const;
+
 
 
 function OfflineBanner() {
