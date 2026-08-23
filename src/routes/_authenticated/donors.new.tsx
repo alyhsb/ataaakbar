@@ -26,7 +26,7 @@ function AddDonorPage() {
   const createDonor = useServerFn(createDonorWithAccount);
 
   return (
-    <AppShell title="إضافة متبرع" subtitle="سجّل متبرعاً جديداً وأنشئ له رمز دخول">
+    <AppShell title="إضافة متبرع" subtitle="سجّل متبرعاً جديداً — رمز الدخول ينشئه المتبرع بنفسه عند التسجيل">
       <DonorForm
         initial={{
           name: "",
@@ -36,9 +36,7 @@ function AddDonorPage() {
           monthlyAmount: 50000,
           dueDay: 5,
           notes: "",
-          accessCode: "",
         }}
-        withAccessCode
         submitLabel="حفظ المتبرع"
         onSubmit={async (values) => {
           try {
@@ -46,7 +44,6 @@ function AddDonorPage() {
               data: {
                 name: values.name,
                 phone: values.phone,
-                accessCode: values.accessCode ?? "",
                 area: values.area,
                 location: values.location,
                 monthlyAmount: values.monthlyAmount,

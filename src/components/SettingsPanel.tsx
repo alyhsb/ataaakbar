@@ -88,7 +88,7 @@ export function SettingsPanel() {
       if (donor) {
         await updateOwnDonorInfo(donor.id, { area: area.trim(), location: location.trim() });
       }
-      if (isManager && password) {
+      if (password) {
         if (password.length < 6) throw new Error("رمز الدخول يجب أن يكون ٦ خانات على الأقل");
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
@@ -142,16 +142,8 @@ export function SettingsPanel() {
                       className={`${inputCls} bg-secondary text-muted-foreground`}
                     />
                   </Field>
-                  <Field label="رمز الدخول">
-                    <input
-                      value={donor.accessCode ?? "—"}
-                      readOnly
-                      dir="ltr"
-                      className={`${inputCls} bg-secondary text-muted-foreground`}
-                    />
-                  </Field>
                   <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-                    لتغيير رقم الهاتف أو رمز الدخول، يرجى التواصل مع إدارة التطبيق.
+                    رمز الدخول خاص بك ولا تطّلع عليه الإدارة. يمكنك تغييره في أي وقت من الحقل أدناه.
                   </p>
                   <Field label="المنطقة">
                     <input value={area} onChange={(e) => setArea(e.target.value)} className={inputCls} />
@@ -165,17 +157,15 @@ export function SettingsPanel() {
                   </Field>
                 </>
               ) : null}
-              {isManager ? (
-                <Field label="رمز دخول جديد لحسابك">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="اتركه فارغاً لعدم التغيير"
-                    className={inputCls}
-                  />
-                </Field>
-              ) : null}
+              <Field label="رمز دخول جديد لحسابك">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="اتركه فارغاً لعدم التغيير"
+                  className={inputCls}
+                />
+              </Field>
               {donor || isManager ? (
                 <button
                   type="submit"

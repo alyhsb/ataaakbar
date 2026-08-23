@@ -57,7 +57,6 @@ function DonorDetails() {
   const navigate = useNavigate();
   const updateAccount = useServerFn(updateDonorCredentials);
   const [newPhone, setNewPhone] = useState("");
-  const [newCode, setNewCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   if (!donor) {
@@ -172,8 +171,8 @@ function DonorDetails() {
             </p>
             <p className="text-xs text-muted-foreground">
               {donor.userId
-                ? `يسجّل الدخول برقم هاتفه ${donor.phone} ورمز الدخول الخاص به.`
-                : "لا يملك حساب دخول بعد. أدخل رمز دخول جديد لتفعيل حسابه."}
+                ? `يسجّل الدخول برقم هاتفه ${donor.phone} ورمز دخول خاص به لا تطّلع عليه الإدارة.`
+                : "لا يملك حساب دخول بعد. يسجّل المتبرع بنفسه برقم هاتفه وينشئ رمز دخوله الخاص."}
             </p>
             <div className="space-y-2">
               <input
@@ -184,16 +183,9 @@ function DonorDetails() {
                 placeholder="رقم هاتف جديد (اختياري)"
                 className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
               />
-              <input
-                type="text"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value)}
-                placeholder="رمز دخول جديد (٦ أحرف على الأقل)"
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
               <button
                 type="button"
-                disabled={busy || (!newPhone.trim() && newCode.trim().length < 6)}
+                disabled={busy || !newPhone.trim()}
                 onClick={async () => {
                   setBusy(true);
                   try {
@@ -201,11 +193,9 @@ function DonorDetails() {
                       data: {
                         donorId: donor.id,
                         ...(newPhone.trim() ? { phone: newPhone.trim() } : {}),
-                        ...(newCode.trim() ? { accessCode: newCode.trim() } : {}),
                       },
                     });
                     setNewPhone("");
-                    setNewCode("");
                     await loadAll();
                     toast.success("تم تحديث بيانات الدخول");
                   } catch (err) {
@@ -216,7 +206,7 @@ function DonorDetails() {
                 }}
                 className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary disabled:opacity-60"
               >
-                حفظ بيانات الدخول
+                حفظ رقم الهاتف
               </button>
             </div>
           </div>

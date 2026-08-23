@@ -60,7 +60,6 @@ export type Donor = {
   mawkibId?: string | undefined;
   membershipStatus: MembershipStatus;
   code?: string | undefined;
-  accessCode?: string | undefined;
   name: string;
   phone: string;
   area: string;
@@ -142,7 +141,6 @@ type DonorRow = {
   notes: string | null;
   joined_at: string;
   username: string | null;
-  access_code?: string | null;
   deleted_at: string | null;
   profile_completed?: boolean | null;
   last_login_at?: string | null;
@@ -180,7 +178,6 @@ const mapDonor = (r: DonorRow): Donor => ({
         ? "rejected"
         : "active",
   code: r.donor_code ?? undefined,
-  accessCode: r.access_code ?? undefined,
   name: r.name,
   phone: r.phone,
   area: r.area,
