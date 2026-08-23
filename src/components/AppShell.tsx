@@ -5,28 +5,35 @@ import {
   UserPlus,
   Heart,
   WifiOff,
-  ShieldPlus,
   Inbox,
   Plus,
+  Building2,
+  UserCog,
+  KeyRound,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { APP_NAME, APP_TAGLINE } from "@/lib/app-info";
 
-const adminNav = [
+const managerNav = [
   { to: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
-  { to: "/donors", label: "قائمة المتبرعين", icon: Users },
+  { to: "/donors", label: "متبرعو الموكب", icon: Users },
   { to: "/donors/new", label: "إضافة متبرع", icon: UserPlus },
   { to: "/requests", label: "طلبات المتبرعين", icon: Inbox },
+  { to: "/recovery", label: "استعادة الحسابات", icon: KeyRound },
 ] as const;
 
-const ownerNav = { to: "/owners/new", label: "إضافة صاحب موكب", icon: ShieldPlus } as const;
+const adminOnlyNav = [
+  { to: "/users", label: "المستخدمون", icon: UserCog },
+  { to: "/mawakib", label: "المواكب", icon: Building2 },
+] as const;
 
 const donorNav = [
   { to: "/donor", label: "مواكبي", icon: Heart },
   { to: "/donor/browse", label: "إضافة موكب", icon: Plus },
 ] as const;
+
 
 function OfflineBanner() {
   const [offline, setOffline] = useState(false);

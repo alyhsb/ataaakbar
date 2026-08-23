@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedMawakibRouteImport } from './routes/_authenticated/mawakib'
+import { Route as AuthenticatedRecoveryRouteImport } from './routes/_authenticated/recovery'
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedDonorIndexRouteImport } from './routes/_authenticated/donor.index'
@@ -41,6 +42,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 const AuthenticatedMawakibRoute = AuthenticatedMawakibRouteImport.update({
   id: '/mawakib',
   path: '/mawakib',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecoveryRoute = AuthenticatedRecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/mawakib': typeof AuthenticatedMawakibRoute
+  '/recovery': typeof AuthenticatedRecoveryRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/donor/browse': typeof AuthenticatedDonorBrowseRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/mawakib': typeof AuthenticatedMawakibRoute
+  '/recovery': typeof AuthenticatedRecoveryRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/donor/browse': typeof AuthenticatedDonorBrowseRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/mawakib': typeof AuthenticatedMawakibRoute
+  '/_authenticated/recovery': typeof AuthenticatedRecoveryRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/donor/browse': typeof AuthenticatedDonorBrowseRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/mawakib'
+    | '/recovery'
     | '/requests'
     | '/users'
     | '/donor/browse'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/mawakib'
+    | '/recovery'
     | '/requests'
     | '/users'
     | '/donor/browse'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/admin'
     | '/_authenticated/mawakib'
+    | '/_authenticated/recovery'
     | '/_authenticated/requests'
     | '/_authenticated/users'
     | '/_authenticated/donor/browse'
@@ -228,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/mawakib'
       fullPath: '/mawakib'
       preLoaderRoute: typeof AuthenticatedMawakibRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recovery': {
+      id: '/_authenticated/recovery'
+      path: '/recovery'
+      fullPath: '/recovery'
+      preLoaderRoute: typeof AuthenticatedRecoveryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/requests': {
@@ -306,6 +325,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedMawakibRoute: typeof AuthenticatedMawakibRoute
+  AuthenticatedRecoveryRoute: typeof AuthenticatedRecoveryRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedDonorBrowseRoute: typeof AuthenticatedDonorBrowseRoute
@@ -321,6 +341,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedMawakibRoute: AuthenticatedMawakibRoute,
+  AuthenticatedRecoveryRoute: AuthenticatedRecoveryRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedDonorBrowseRoute: AuthenticatedDonorBrowseRoute,
