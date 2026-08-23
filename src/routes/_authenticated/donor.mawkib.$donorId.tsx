@@ -4,7 +4,9 @@ import { History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { NotificationBell } from "@/components/NotificationBell";
+import { MawkibPublicContent } from "@/components/MawkibContentSections";
 import { useAuth } from "@/lib/auth";
+import { useMawkibContent } from "@/lib/mawkib-content";
 import {
   useDonor,
   useDonorPayments,
@@ -20,6 +22,7 @@ import {
   mawkibName,
   errorMessage,
 } from "@/lib/donors-store";
+
 
 export const Route = createFileRoute("/_authenticated/donor/mawkib/$donorId")({
   head: () => ({
