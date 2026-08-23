@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      amount_change_requests: {
+        Row: {
+          created_at: string
+          current_amount: number
+          decided_at: string | null
+          decided_by: string | null
+          donor_id: string
+          id: string
+          note: string | null
+          requested_amount: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          donor_id: string
+          id?: string
+          note?: string | null
+          requested_amount: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          donor_id?: string
+          id?: string
+          note?: string | null
+          requested_amount?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amount_change_requests_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "donors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amount_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          donor_id: string
+          id: string
+          new_amount: number
+          old_amount: number
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          donor_id: string
+          id?: string
+          new_amount: number
+          old_amount: number
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          donor_id?: string
+          id?: string
+          new_amount?: number
+          old_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amount_history_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "donors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donors: {
         Row: {
           access_code: string | null
@@ -28,6 +107,7 @@ export type Database = {
           last_profile_update_at: string | null
           location: string
           mawkib_id: string | null
+          membership_status: string
           monthly_amount: number
           name: string
           notes: string | null
@@ -49,6 +129,7 @@ export type Database = {
           last_profile_update_at?: string | null
           location?: string
           mawkib_id?: string | null
+          membership_status?: string
           monthly_amount?: number
           name: string
           notes?: string | null
@@ -70,6 +151,7 @@ export type Database = {
           last_profile_update_at?: string | null
           location?: string
           mawkib_id?: string | null
+          membership_status?: string
           monthly_amount?: number
           name?: string
           notes?: string | null
@@ -92,6 +174,7 @@ export type Database = {
         Row: {
           area: string
           created_at: string
+          description: string
           id: string
           name: string
           phone: string
@@ -99,6 +182,7 @@ export type Database = {
         Insert: {
           area?: string
           created_at?: string
+          description?: string
           id?: string
           name: string
           phone?: string
@@ -106,6 +190,7 @@ export type Database = {
         Update: {
           area?: string
           created_at?: string
+          description?: string
           id?: string
           name?: string
           phone?: string
