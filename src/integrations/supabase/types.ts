@@ -209,6 +209,51 @@ export type Database = {
           },
         ]
       }
+      goal_contributions: {
+        Row: {
+          amount: number
+          contributed_on: string
+          created_at: string
+          donor_id: string
+          goal_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          amount?: number
+          contributed_on?: string
+          created_at?: string
+          donor_id: string
+          goal_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          amount?: number
+          contributed_on?: string
+          created_at?: string
+          donor_id?: string
+          goal_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_contributions_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "donors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_contributions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "mawkib_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mawakib: {
         Row: {
           area: string
@@ -238,6 +283,103 @@ export type Database = {
           phone?: string
         }
         Relationships: []
+      }
+      mawkib_goals: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          image_url: string | null
+          mawkib_id: string
+          published: boolean
+          status: string
+          target_amount: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          mawkib_id: string
+          published?: boolean
+          status?: string
+          target_amount?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          image_url?: string | null
+          mawkib_id?: string
+          published?: boolean
+          status?: string
+          target_amount?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mawkib_goals_mawkib_id_fkey"
+            columns: ["mawkib_id"]
+            isOneToOne: false
+            referencedRelation: "mawakib"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mawkib_posts: {
+        Row: {
+          content: string
+          created_at: string
+          hijri_date: string | null
+          id: string
+          images: string[]
+          mawkib_id: string
+          post_date: string
+          published: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          hijri_date?: string | null
+          id?: string
+          images?: string[]
+          mawkib_id: string
+          post_date?: string
+          published?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          hijri_date?: string | null
+          id?: string
+          images?: string[]
+          mawkib_id?: string
+          post_date?: string
+          published?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mawkib_posts_mawkib_id_fkey"
+            columns: ["mawkib_id"]
+            isOneToOne: false
+            referencedRelation: "mawakib"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -421,6 +563,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_mawkib_member: { Args: { _mawkib: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "donor" | "owner"
