@@ -43,14 +43,32 @@ function WelcomePage() {
   const [phone, setPhone] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [fullName, setFullName] = useState("");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "recover">("login");
   const [busy, setBusy] = useState(false);
+  const [duplicate, setDuplicate] = useState(false);
+  const [recoveryStatus, setRecoveryStatus] = useState<"idle" | "pending" | "approved">("idle");
 
   useEffect(() => {
     if (ready && userId && role) {
       navigate({ to: role === "donor" ? "/donor" : "/admin", replace: true });
     }
   }, [ready, userId, role, navigate]);
+
+  async function openRecovery() {
+    setMode("recover");
+    setDuplicate(false);
+    setAccessCode("");
+    if (phone.replace(/\D/g, "").length >= 7) {
+      try {
+        const res = await checkAccountRecovery({ data: { phone } });
+        setRecoveryStatus(
+          res.status === "approved" ? "approved" : res.status === "pending" ? "pending" : "idle",
+        );
+      } catch {
+        setRecoveryStatus("idle");
+      }
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +77,29 @@ function WelcomePage() {
     try {
       const digits = phone.replace(/\D/g, "");
       if (digits.length < 7) throw new Error("رقم هاتف غير صالح");
+
+      if (mode === "recover") {
+        if (recoveryStatus === "approved") {
+          if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
+          await completeAccountRecovery({ data: { phone, accessCode } });
+          toast.success("تم تحديث رمز الدخول، سجّل الدخول برمزك الجديد");
+          setMode("login");
+          setRecoveryStatus("idle");
+          setAccessCode("");
+          return;
+        }
+        const res = await requestAccountRecovery({
+          data: { phone, name: fullName.trim() || undefined },
+        });
+        setRecoveryStatus(res.status === "approved" ? "approved" : "pending");
+        toast.success(
+          res.status === "approved"
+            ? "تمت الموافقة على طلبك، ضع رمز دخول جديد الآن"
+            : "تم إرسال طلب الاستعادة إلى الإدارة، راجعهم للتحقق من هويتك",
+        );
+        return;
+      }
+
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
@@ -70,11 +111,11 @@ function WelcomePage() {
           },
         });
         if (error) {
-          throw new Error(
-            /registered|exists/i.test(error.message)
-              ? "رقم الهاتف مسجّل بالفعل، سجّل الدخول بدلاً من ذلك"
-              : "تعذّر إنشاء الحساب",
-          );
+          if (/registered|exists/i.test(error.message)) {
+            setDuplicate(true);
+            throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
+          }
+          throw new Error("تعذّر إنشاء الحساب");
         }
         toast.success("تم إنشاء حسابك، اختر موكباً للانضمام إليه");
         return;
@@ -90,6 +131,7 @@ function WelcomePage() {
       setBusy(false);
     }
   }
+
 
   return (
     <div dir="rtl" className="min-h-screen bg-background">
