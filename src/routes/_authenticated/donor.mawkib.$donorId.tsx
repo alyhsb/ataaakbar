@@ -66,6 +66,11 @@ function MembershipPage() {
 
   const pendingReq = requests.find((r) => r.status === "pending");
   const over = overdueDays(donor);
+  const paidTotal = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
+  const goalTotal = content.contributions
+    .filter((c) => c.donorId === donor.id)
+    .reduce((s, c) => s + c.amount, 0);
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
