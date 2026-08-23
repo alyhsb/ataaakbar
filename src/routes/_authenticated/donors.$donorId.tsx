@@ -32,11 +32,7 @@ import {
   errorMessage,
   useStoreLoaded,
 } from "@/lib/donors-store";
-import {
-  createDonorAccount,
-  resetDonorPassword,
-  adminUpdateDonorAccount,
-} from "@/lib/donor-accounts.functions";
+import { updateDonorCredentials } from "@/lib/accounts.functions";
 
 export const Route = createFileRoute("/_authenticated/donors/$donorId")({
   head: () => ({
@@ -59,12 +55,9 @@ function DonorDetails() {
   const loaded = useStoreLoaded();
   const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
-  const makeAccount = useServerFn(createDonorAccount);
-  const resetPassword = useServerFn(resetDonorPassword);
-  const updateAccount = useServerFn(adminUpdateDonorAccount);
-  const [creds, setCreds] = useState<{ username: string; password: string } | null>(null);
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const updateAccount = useServerFn(updateDonorCredentials);
+  const [newPhone, setNewPhone] = useState("");
+  const [newCode, setNewCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   if (!donor) {
@@ -177,92 +170,55 @@ function DonorDetails() {
               <KeyRound className="h-4 w-4 text-gold" />
               حساب الدخول
             </p>
-            {creds ? (
-              <div className="space-y-1 rounded-lg bg-secondary p-3 text-xs text-ink">
-                <p>
-                  اسم المستخدم: <span className="font-bold">{creds.username}</span>
-                </p>
-                <p>
-                  كلمة المرور المؤقتة: <span className="font-bold">{creds.password}</span>
-                </p>
-                <p className="text-muted-foreground">
-                  سلّم هذه البيانات للمتبرع؛ لن تظهر مرة أخرى. يسجّل الدخول برقم هاتفه.
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {donor.userId
-                  ? `لديه حساب باسم المستخدم ${donor.username ?? donor.phone}`
-                  : "لا يملك حساب دخول بعد."}
-              </p>
-            )}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  const result = donor.userId
-                    ? await resetPassword({ data: { donorId: donor.id } })
-                    : await makeAccount({ data: { donorId: donor.id } });
-                  setCreds(result);
-                  await loadAll();
-                  toast.success("تم إنشاء بيانات الدخول");
-                } catch (err) {
-                  toast.error(err instanceof Error ? err.message : "تعذّر إنشاء الحساب");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-              className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary disabled:opacity-60"
-            >
-              {donor.userId ? "إنشاء كلمة مرور جديدة" : "إنشاء حساب دخول"}
-            </button>
-
-            {donor.userId ? (
-              <div className="space-y-2 border-t border-border pt-3">
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="بريد إلكتروني جديد"
-                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                />
-                <input
-                  type="text"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="كلمة مرور محددة (اختياري)"
-                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-                />
-                <button
-                  type="button"
-                  disabled={busy || (!newEmail.trim() && !newPassword)}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await updateAccount({
-                        data: {
-                          donorId: donor.id,
-                          ...(newEmail.trim() ? { email: newEmail.trim() } : {}),
-                          ...(newPassword ? { password: newPassword } : {}),
-                        },
-                      });
-                      setNewEmail("");
-                      setNewPassword("");
-                      toast.success("تم تحديث بيانات الحساب");
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "تعذّر تحديث الحساب");
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                  className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary disabled:opacity-60"
-                >
-                  حفظ بيانات الحساب
-                </button>
-              </div>
-            ) : null}
+            <p className="text-xs text-muted-foreground">
+              {donor.userId
+                ? `يسجّل الدخول برقم هاتفه ${donor.phone} ورمز الدخول الخاص به.`
+                : "لا يملك حساب دخول بعد. أدخل رمز دخول جديد لتفعيل حسابه."}
+            </p>
+            <div className="space-y-2">
+              <input
+                type="tel"
+                dir="ltr"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="رقم هاتف جديد (اختياري)"
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+              <input
+                type="text"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value)}
+                placeholder="رمز دخول جديد (٦ أحرف على الأقل)"
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                disabled={busy || (!newPhone.trim() && newCode.trim().length < 6)}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await updateAccount({
+                      data: {
+                        donorId: donor.id,
+                        ...(newPhone.trim() ? { phone: newPhone.trim() } : {}),
+                        ...(newCode.trim() ? { accessCode: newCode.trim() } : {}),
+                      },
+                    });
+                    setNewPhone("");
+                    setNewCode("");
+                    await loadAll();
+                    toast.success("تم تحديث بيانات الدخول");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "تعذّر تحديث الحساب");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-secondary disabled:opacity-60"
+              >
+                حفظ بيانات الدخول
+              </button>
+            </div>
           </div>
         </div>
 

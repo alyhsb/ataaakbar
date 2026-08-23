@@ -1,5 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/lib/auth";
@@ -39,11 +38,6 @@ function DonorDashboard() {
   const loaded = useStoreLoaded();
   const donor = useDonorByUser(userId ?? undefined);
   const payments = useDonorPayments(donor?.id ?? "");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (donor && !donor.profileCompleted) navigate({ to: "/complete-profile", replace: true });
-  }, [donor, navigate]);
 
   if (!donor) {
     return (
