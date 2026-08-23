@@ -26,15 +26,21 @@ const donorInput = z.object({
 
 type Caller = { isAdmin: boolean; isOwner: boolean; mawkibId: string | null };
 
+type RpcClient = {
+  rpc: (
+    fn: "has_role",
+    args: { _user_id: string; _role: "admin" | "owner" | "donor" },
+  ) => PromiseLike<{ data: unknown }>;
+};
+
 async function resolveCaller(context: {
-  supabase: {
-    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }>;
-  };
+  supabase: unknown;
   userId: string;
 }): Promise<Caller> {
+  const client = context.supabase as RpcClient;
   const [{ data: admin }, { data: owner }] = await Promise.all([
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "owner" }),
+    client.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+    client.rpc("has_role", { _user_id: context.userId, _role: "owner" }),
   ]);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: profile } = await supabaseAdmin
