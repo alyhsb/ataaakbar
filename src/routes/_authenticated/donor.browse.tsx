@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import {
-  useMawakib,
+  useActiveMawakib,
   useMyMemberships,
   requestJoinMawkib,
   errorMessage,
@@ -33,7 +33,7 @@ const inputCls =
 function BrowseMawakibPage() {
   const navigate = useNavigate();
   const { userId } = useAuth();
-  const mawakib = useMawakib();
+  const mawakib = useActiveMawakib();
   const memberships = useMyMemberships(userId ?? undefined);
   const [selected, setSelected] = useState<string | null>(null);
   const [amount, setAmount] = useState(10000);
