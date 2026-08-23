@@ -215,6 +215,14 @@ function MembershipPage() {
           </ul>
         )}
       </section>
+
+      <MawkibPublicContent
+        goals={content.goals}
+        contributions={content.contributions}
+        posts={content.posts}
+        donorId={donor.id}
+      />
+
     </AppShell>
   );
 }
