@@ -231,7 +231,7 @@ function DonorsList() {
                       onConfirm={async () => {
                         try {
                           await deleteDonor(d.id);
-                          toast.success("تم نقل المتبرع إلى المحذوفين مع الاحتفاظ بسجل دفعاته");
+                          toast.success("تمت إزالة المتبرع من الموكب — حسابه في التطبيق لم يُحذف");
                         } catch (err) {
                           toast.error(errorMessage(err, "تعذّر حذف المتبرع"));
                         }

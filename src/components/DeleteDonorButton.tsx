@@ -29,7 +29,7 @@ export function DeleteDonorButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`حذف ${name}`}
+        aria-label={`إزالة ${name} من الموكب`}
         className={
           variant === "icon"
             ? "rounded-md p-1.5 text-destructive transition-colors hover:bg-destructive/10"
@@ -43,11 +43,11 @@ export function DeleteDonorButton({
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent dir="rtl" className="text-right">
           <AlertDialogHeader>
-            <AlertDialogTitle>{permanent ? "حذف نهائي" : "حذف المتبرع"}</AlertDialogTitle>
+            <AlertDialogTitle>{permanent ? "حذف العضوية نهائياً" : "إزالة المتبرع من الموكب"}</AlertDialogTitle>
             <AlertDialogDescription>
               {permanent
-                ? `سيتم حذف «${name}» وجميع سجلات دفعاته نهائياً. لا يمكن التراجع عن هذا الإجراء.`
-                : `سيتم نقل «${name}» إلى سلة المحذوفات، ويمكنك استعادته في أي وقت.`}
+                ? `سيتم حذف عضوية «${name}» في هذا الموكب وسجل دفعاتها نهائياً. حساب المتبرع في التطبيق وبقية مواكبه تبقى كما هي.`
+                : `سيتم إنهاء عضوية «${name}» في هذا الموكب فقط. حسابه في التطبيق ومواكبه الأخرى تبقى فعّالة، ويمكنك استعادة العضوية في أي وقت.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-start">
@@ -55,7 +55,7 @@ export function DeleteDonorButton({
               onClick={onConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {permanent ? "نعم، احذف نهائياً" : "نعم، انقله إلى المحذوفات"}
+              {permanent ? "نعم، احذف العضوية نهائياً" : "نعم، أزله من الموكب"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
