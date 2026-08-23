@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
+import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedDonorIndexRouteImport } from './routes/_authenticated/donor.index'
 import { Route as AuthenticatedDonorBrowseRouteImport } from './routes/_authenticated/donor.browse'
 import { Route as AuthenticatedDonorsIndexRouteImport } from './routes/_authenticated/donors.index'
@@ -39,6 +40,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDonorIndexRoute = AuthenticatedDonorIndexRouteImport.update({
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/requests': typeof AuthenticatedRequestsRoute
+  '/users': typeof AuthenticatedUsersRoute
   '/donor/browse': typeof AuthenticatedDonorBrowseRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/requests': typeof AuthenticatedRequestsRoute
+  '/users': typeof AuthenticatedUsersRoute
   '/donor/browse': typeof AuthenticatedDonorBrowseRoute
   '/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/donors/new': typeof AuthenticatedDonorsNewRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
+  '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/donor/browse': typeof AuthenticatedDonorBrowseRoute
   '/_authenticated/donors/$donorId': typeof AuthenticatedDonorsDonorIdRoute
   '/_authenticated/donors/new': typeof AuthenticatedDonorsNewRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/requests'
+    | '/users'
     | '/donor/browse'
     | '/donors/$donorId'
     | '/donors/new'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/requests'
+    | '/users'
     | '/donor/browse'
     | '/donors/$donorId'
     | '/donors/new'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/admin'
     | '/_authenticated/requests'
+    | '/_authenticated/users'
     | '/_authenticated/donor/browse'
     | '/_authenticated/donors/$donorId'
     | '/_authenticated/donors/new'
@@ -204,6 +216,13 @@ declare module '@tanstack/react-router' {
       path: '/requests'
       fullPath: '/requests'
       preLoaderRoute: typeof AuthenticatedRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/users': {
+      id: '/_authenticated/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/donor/': {
@@ -268,6 +287,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
+  AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedDonorBrowseRoute: typeof AuthenticatedDonorBrowseRoute
   AuthenticatedDonorsDonorIdRoute: typeof AuthenticatedDonorsDonorIdRoute
   AuthenticatedDonorsNewRoute: typeof AuthenticatedDonorsNewRoute
@@ -281,6 +301,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
+  AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedDonorBrowseRoute: AuthenticatedDonorBrowseRoute,
   AuthenticatedDonorsDonorIdRoute: AuthenticatedDonorsDonorIdRoute,
   AuthenticatedDonorsNewRoute: AuthenticatedDonorsNewRoute,
