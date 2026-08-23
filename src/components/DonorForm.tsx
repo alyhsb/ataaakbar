@@ -90,7 +90,6 @@ export function DonorForm({
           monthlyAmount: Number(form.monthlyAmount),
           dueDay: Number(form.dueDay),
           notes: form.notes.trim(),
-          });
         });
       }}
     >
