@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedMawakibRouteImport } from './routes/_authenticated/mawakib'
 import { Route as AuthenticatedRecoveryRouteImport } from './routes/_authenticated/recovery'
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
@@ -37,6 +38,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
+  id: '/content',
+  path: '/content',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMawakibRoute = AuthenticatedMawakibRouteImport.update({
@@ -108,6 +114,7 @@ const AuthenticatedDonorsEditDonorIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/content': typeof AuthenticatedContentRoute
   '/mawakib': typeof AuthenticatedMawakibRoute
   '/recovery': typeof AuthenticatedRecoveryRoute
   '/requests': typeof AuthenticatedRequestsRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/content': typeof AuthenticatedContentRoute
   '/mawakib': typeof AuthenticatedMawakibRoute
   '/recovery': typeof AuthenticatedRecoveryRoute
   '/requests': typeof AuthenticatedRequestsRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/content': typeof AuthenticatedContentRoute
   '/_authenticated/mawakib': typeof AuthenticatedMawakibRoute
   '/_authenticated/recovery': typeof AuthenticatedRecoveryRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/content'
     | '/mawakib'
     | '/recovery'
     | '/requests'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/content'
     | '/mawakib'
     | '/recovery'
     | '/requests'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/admin'
+    | '/_authenticated/content'
     | '/_authenticated/mawakib'
     | '/_authenticated/recovery'
     | '/_authenticated/requests'
@@ -233,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/content': {
+      id: '/_authenticated/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof AuthenticatedContentRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/mawakib': {
@@ -324,6 +343,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedContentRoute: typeof AuthenticatedContentRoute
   AuthenticatedMawakibRoute: typeof AuthenticatedMawakibRoute
   AuthenticatedRecoveryRoute: typeof AuthenticatedRecoveryRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
@@ -340,6 +360,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedContentRoute: AuthenticatedContentRoute,
   AuthenticatedMawakibRoute: AuthenticatedMawakibRoute,
   AuthenticatedRecoveryRoute: AuthenticatedRecoveryRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
