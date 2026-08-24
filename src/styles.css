@@ -170,6 +170,23 @@
   h1, h2, h3, h4 {
     font-family: var(--font-display);
   }
+
+  /* Readable placeholders and disabled text in both themes */
+  ::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+
+  .dark input,
+  .dark textarea,
+  .dark select {
+    color: var(--foreground);
+  }
+
+  .dark ::placeholder {
+    color: oklch(0.76 0.018 150);
+    opacity: 1;
+  }
 }
 
 @utility surface-card {
