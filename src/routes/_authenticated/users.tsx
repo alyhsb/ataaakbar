@@ -30,15 +30,17 @@ export const Route = createFileRoute("/_authenticated/users")({
   component: UsersPage,
 });
 
-type Filter = "all" | "donor" | "owner" | "active" | "inactive";
+type Filter = "all" | "donor" | "owner" | "active" | "pending" | "inactive";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "الكل" },
   { key: "donor", label: "المتبرعون" },
   { key: "owner", label: "أصحاب المواكب" },
   { key: "active", label: "نشِط" },
+  { key: "pending", label: "غير مُفعّل" },
   { key: "inactive", label: "معطّل" },
 ];
+
 
 function fmtDate(v: string | null) {
   return v ? new Date(v).toLocaleDateString("ar-IQ") : "—";
