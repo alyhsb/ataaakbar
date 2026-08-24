@@ -131,21 +131,27 @@ function WelcomePage() {
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
-        const { error } = await supabase.auth.signUp({
+        let linkedMemberships = 0;
+        try {
+          const res = await registerDonorAccount({
+            data: { phone, accessCode, name: fullName.trim() },
+          });
+          linkedMemberships = res.linkedMemberships;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "تعذّر إنشاء الحساب";
+          if (/موجود مسبقاً/.test(message)) setDuplicate(true);
+          throw new Error(message);
+        }
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: toLoginEmail(phone),
           password: accessCode,
-          options: {
-            data: { full_name: fullName.trim(), phone, account_type: "donor" },
-          },
         });
-        if (error) {
-          if (/registered|exists/i.test(error.message)) {
-            setDuplicate(true);
-            throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
-          }
-          throw new Error("تعذّر إنشاء الحساب");
-        }
-        toast.success("تم إنشاء حسابك، اختر موكباً للانضمام إليه");
+        if (signInError) throw new Error("تم إنشاء الحساب، سجّل الدخول برقمك ورمزك");
+        toast.success(
+          linkedMemberships > 0
+            ? "تم تنشيط حسابك وربطه بسجلك السابق في الموكب"
+            : "تم إنشاء حسابك، اختر موكباً للانضمام إليه",
+        );
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({
