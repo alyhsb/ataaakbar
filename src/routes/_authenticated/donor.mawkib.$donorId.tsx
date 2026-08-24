@@ -4,7 +4,11 @@ import { History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { NotificationBell } from "@/components/NotificationBell";
-import { MawkibPublicContent } from "@/components/MawkibContentSections";
+import {
+  MawkibGoalsSection,
+  MawkibPostsSection,
+  visibleGoals,
+} from "@/components/MawkibContentSections";
 import { useAuth } from "@/lib/auth";
 import { useMawkibContent } from "@/lib/mawkib-content";
 import type { Currency } from "@/lib/donors-store";
