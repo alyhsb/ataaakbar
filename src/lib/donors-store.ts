@@ -704,6 +704,7 @@ export async function startNewMonth() {
         month,
         year,
         amount: d.monthlyAmount,
+        currency: d.currency,
         status: "unpaid",
       })),
     )
@@ -954,6 +955,7 @@ export async function requestJoinMawkib(input: {
   phone: string;
   mawkibId: string;
   monthlyAmount: number;
+  currency?: Currency;
   dueDay?: number;
   area?: string;
   location?: string;
@@ -972,6 +974,7 @@ export async function requestJoinMawkib(input: {
       area: input.area ?? "",
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      currency: input.currency ?? "IQD",
       due_day: input.dueDay ?? 5,
     })
     .select()
