@@ -205,6 +205,7 @@ function UsersPage() {
                     title="حذف المستخدم"
                     description={`سيتم حذف حساب «${u.name}» من التطبيق ولن يستطيع تسجيل الدخول، ويصبح رقم هاتفه متاحاً لإنشاء حساب جديد. تبقى سجلات التبرعات والدفعات محفوظة في الموكب ولن تُدمج تلقائياً مع أي حساب جديد.`}
                     confirmLabel="نعم، احذف الحساب"
+                    destructive
                     onConfirm={async () => {
                       try {
                         await removeUser({ data: { userId: u.id } });
