@@ -9,6 +9,8 @@ import {
   requestAccountRecovery,
   checkAccountRecovery,
   completeAccountRecovery,
+  registerDonorAccount,
+  lookupDonorPhone,
 } from "@/lib/users.functions";
 
 
