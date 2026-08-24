@@ -48,6 +48,7 @@ function UsersPage() {
   const { role } = useAuth();
   const fetchUsers = useServerFn(listAppUsers);
   const changeStatus = useServerFn(setAccountStatus);
+  const removeUser = useServerFn(deleteAppUser);
   const [users, setUsers] = useState<AppUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
