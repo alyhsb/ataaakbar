@@ -305,11 +305,13 @@ function WelcomePage() {
                     ? "تسجيل الدخول لصاحب الموكب"
                     : mode === "login"
                       ? "تسجيل الدخول للمتبرع"
-                      : "إنشاء حساب متبرع جديد"}
+                      : mode === "activate"
+                        ? "تفعيل حساب أنشأه الموكب"
+                        : "إنشاء حساب متبرع جديد"}
               </h2>
               {choice === "donor" && mode !== "recover" ? (
                 <div className="flex rounded-lg bg-secondary p-1">
-                  {(["login", "register"] as const).map((m) => (
+                  {(["login", "register", "activate"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -317,15 +319,16 @@ function WelcomePage() {
                         setMode(m);
                         setDuplicate(false);
                       }}
-                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-colors ${
+                      className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-colors ${
                         mode === m ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                       }`}
                     >
-                      {m === "login" ? "تسجيل الدخول" : "حساب جديد"}
+                      {m === "login" ? "تسجيل الدخول" : m === "register" ? "حساب جديد" : "تفعيل حساب"}
                     </button>
                   ))}
                 </div>
               ) : null}
+
 
               {duplicate ? (
                 <div className="space-y-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm text-ink">
