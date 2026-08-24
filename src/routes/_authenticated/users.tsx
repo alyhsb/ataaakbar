@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Search, ShieldCheck, Heart, Ban, RotateCcw } from "lucide-react";
+import { Loader2, Search, ShieldCheck, Heart, Ban, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAuth } from "@/lib/auth";
-import { listAppUsers, setAccountStatus, type AppUser } from "@/lib/users.functions";
+import {
+  listAppUsers,
+  setAccountStatus,
+  deleteAppUser,
+  type AppUser,
+} from "@/lib/users.functions";
 import { errorMessage } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/users")({
