@@ -76,7 +76,9 @@ function UsersPage() {
       if (filter === "donor" && u.role !== "donor") return false;
       if (filter === "owner" && u.role !== "owner") return false;
       if (filter === "active" && u.status !== "active") return false;
+      if (filter === "pending" && u.status !== "pending") return false;
       if (filter === "inactive" && u.status !== "inactive") return false;
+
       if (!q) return true;
       return u.name.includes(q) || u.phone.replace(/\D/g, "").includes(q.replace(/\D/g, ""));
     });
