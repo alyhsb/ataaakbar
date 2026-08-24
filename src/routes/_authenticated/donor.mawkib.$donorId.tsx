@@ -4,7 +4,11 @@ import { History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, StatusPill } from "@/components/AppShell";
 import { NotificationBell } from "@/components/NotificationBell";
-import { MawkibPublicContent } from "@/components/MawkibContentSections";
+import {
+  MawkibGoalsSection,
+  MawkibPostsSection,
+  visibleGoals,
+} from "@/components/MawkibContentSections";
 import { useAuth } from "@/lib/auth";
 import { useMawkibContent } from "@/lib/mawkib-content";
 import type { Currency } from "@/lib/donors-store";
@@ -51,6 +55,7 @@ function MembershipPage() {
   const history = useAmountHistory(donorId);
   const [amount, setAmount] = useState<number | "">("");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<"home" | "payments" | "goals">("home");
   const content = useMawkibContent(donor?.mawkibId);
 
 
@@ -119,152 +124,220 @@ function MembershipPage() {
     }
   }
 
+  const goalsForDonor = visibleGoals(content.goals);
+  const latestGoal = goalsForDonor.length > 0 ? [goalsForDonor[0]!] : [];
+  const tabs = [
+    { id: "home" as const, label: "الرئيسية" },
+    { id: "payments" as const, label: "سجل الدفعات" },
+    ...(goalsForDonor.length > 0 ? [{ id: "goals" as const, label: "أهداف مستقبلية" }] : []),
+  ];
+
   return (
     <AppShell
       title={mawkibName(donor.mawkibId)}
       subtitle="تفاصيل اشتراكك في هذا الموكب"
       action={<NotificationBell donorId={donor.id} />}
     >
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="surface-card p-5">
-          <p className="text-sm text-muted-foreground">التبرع الشهري</p>
-          <p className="font-display text-2xl font-bold text-primary">
-            {formatMoney(donor.monthlyAmount, donor.currency)}
-          </p>
-        </div>
-        <div className="surface-card p-5">
-          <p className="text-sm text-muted-foreground">حالة الشهر الحالي</p>
-          <div className="mt-2 flex items-center gap-2">
-            <StatusPill status={donorStatus(donor)} />
-            {over > 0 ? (
-              <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-destructive-foreground">
-                متأخر {over} يوم
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="surface-card p-5">
-          <p className="text-sm text-muted-foreground">الاستحقاق القادم</p>
-          <p className="font-display text-lg font-bold text-ink">{nextDueDate(donor)}</p>
-      </div>
+      <nav className="surface-card mb-5 flex flex-wrap gap-1 p-1.5">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              tab === t.id
+                ? "gradient-emerald text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-      <section className="surface-card mt-6 p-5">
-        <h2 className="font-display text-lg font-bold text-ink">إجمالي تبرعاتي لهذا الموكب</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          منذ انضمامك إلى {mawkibName(donor.mawkibId)} — لا تُحتسب ضمنه تبرعاتك لمواكب أخرى.
-        </p>
-        {totals.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">لا توجد مساهمات مسجّلة بعد.</p>
-        ) : (
-          totals.map((t) => (
-            <div key={t.cur} className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-secondary px-4 py-3">
-                <p className="text-xs text-muted-foreground">التبرعات الشهرية المدفوعة</p>
-                <p className="font-display text-xl font-bold text-primary">
-                  {formatMoney(t.paid, t.cur)}
-                </p>
-              </div>
-              <div className="rounded-lg bg-secondary px-4 py-3">
-                <p className="text-xs text-muted-foreground">مساهمات أخرى</p>
-                <p className="font-display text-xl font-bold text-gold">
-                  {formatMoney(t.goals, t.cur)}
-                </p>
-              </div>
-              <div className="gradient-emerald rounded-lg px-4 py-3">
-                <p className="text-xs text-primary-foreground/80">إجمالي مساهماتي في هذا الموكب</p>
-                <p className="font-display text-xl font-bold text-primary-foreground">
-                  {formatMoney(t.paid + t.goals, t.cur)}
-                </p>
+      {tab === "home" ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="surface-card p-5">
+              <p className="text-sm text-muted-foreground">التبرع الشهري</p>
+              <p className="font-display text-2xl font-bold text-primary">
+                {formatMoney(donor.monthlyAmount, donor.currency)}
+              </p>
+            </div>
+            <div className="surface-card p-5">
+              <p className="text-sm text-muted-foreground">حالة الشهر الحالي</p>
+              <div className="mt-2 flex items-center gap-2">
+                <StatusPill status={donorStatus(donor)} />
+                {over > 0 ? (
+                  <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-destructive-foreground">
+                    متأخر {over} يوم
+                  </span>
+                ) : null}
               </div>
             </div>
-          ))
-        )}
-      </section>
+            <div className="surface-card p-5">
+              <p className="text-sm text-muted-foreground">الاستحقاق القادم</p>
+              <p className="font-display text-lg font-bold text-ink">{nextDueDate(donor)}</p>
+            </div>
+          </div>
 
-      </div>
-
-      <section className="surface-card mt-6 p-5">
-        <h2 className="font-display text-lg font-bold text-ink">طلب تعديل مبلغ التبرع</h2>
-        {pendingReq ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            لديك طلب قيد الانتظار لتغيير المبلغ إلى {formatMoney(pendingReq.requestedAmount, donor.currency)}.
-          </p>
-        ) : (
-          <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={submit}>
-            <label className="min-w-[180px] flex-1">
-              <span className="mb-1.5 block text-sm font-medium text-ink">المبلغ الجديد</span>
-              <input
-                type="number"
-                min={1000}
-                step={1000}
-                required
-                value={amount}
-                onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                className={inputCls}
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={busy}
-              className="gradient-emerald flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-70"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              إرسال الطلب
-            </button>
-          </form>
-        )}
-
-        {history.length > 0 ? (
-          <div className="mt-5 border-t border-border pt-4">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
-              <History className="h-4 w-4" />
-              سجل تغييرات المبلغ
+          <section className="surface-card mt-6 p-5">
+            <h2 className="font-display text-lg font-bold text-ink">إجمالي تبرعاتي لهذا الموكب</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              منذ انضمامك إلى {mawkibName(donor.mawkibId)} — لا تُحتسب ضمنه تبرعاتك لمواكب أخرى.
             </p>
-            <ul className="space-y-1.5 text-xs text-muted-foreground">
-              {history.map((h) => (
-                <li key={h.id}>
-                  {formatMoney(h.oldAmount, donor.currency)} ← {formatMoney(h.newAmount, donor.currency)} •{" "}
-                  {new Date(h.createdAt).toLocaleDateString("ar-IQ")}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
+            {totals.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">لا توجد مساهمات مسجّلة بعد.</p>
+            ) : (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {totals.map((t) => (
+                  <div key={t.cur} className="gradient-emerald rounded-lg px-4 py-3">
+                    <p className="text-xs text-primary-foreground/80">إجمالي مساهماتي</p>
+                    <p className="font-display text-2xl font-bold text-primary-foreground">
+                      {formatMoney(t.paid + t.goals, t.cur)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
-      <section className="mt-6">
-        <h2 className="mb-3 font-display text-lg font-bold text-ink">سجل الدفعات والمساهمات</h2>
-        {historyRows.length === 0 ? (
-          <div className="surface-card p-8 text-center text-sm text-muted-foreground">
-            لا توجد دفعات مسجّلة بعد.
-          </div>
-        ) : (
-          <ul className="surface-card divide-y divide-border">
-            {historyRows.map((row) => (
-              <li key={row.key} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-                <div>
-                  <p className="text-sm font-semibold text-ink">{row.title}</p>
-                  <p className="text-xs text-muted-foreground">{row.subtitle}</p>
+          <section className="surface-card mt-6 p-5">
+            <h2 className="font-display text-lg font-bold text-ink">طلب تعديل مبلغ التبرع</h2>
+            {pendingReq ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                لديك طلب قيد الانتظار لتغيير المبلغ إلى{" "}
+                {formatMoney(pendingReq.requestedAmount, donor.currency)}.
+              </p>
+            ) : (
+              <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={submit}>
+                <label className="min-w-[180px] flex-1">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">المبلغ الجديد</span>
+                  <input
+                    type="number"
+                    min={1000}
+                    step={1000}
+                    required
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="gradient-emerald flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-70"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  إرسال الطلب
+                </button>
+              </form>
+            )}
+
+            {history.length > 0 ? (
+              <div className="mt-5 border-t border-border pt-4">
+                <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
+                  <History className="h-4 w-4" />
+                  سجل تغييرات المبلغ
+                </p>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  {history.map((h) => (
+                    <li key={h.id}>
+                      {formatMoney(h.oldAmount, donor.currency)} ←{" "}
+                      {formatMoney(h.newAmount, donor.currency)} •{" "}
+                      {new Date(h.createdAt).toLocaleDateString("ar-IQ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </section>
+
+          <MawkibGoalsSection
+            goals={latestGoal}
+            contributions={content.contributions}
+            donorId={donor.id}
+            heading="أحدث هدف مستقبلي"
+          />
+
+          <MawkibPostsSection posts={content.posts} />
+        </>
+      ) : null}
+
+      {tab === "payments" ? (
+        <>
+          <section className="surface-card p-5">
+            <h2 className="font-display text-lg font-bold text-ink">إجمالي تبرعاتي لهذا الموكب</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              منذ انضمامك إلى {mawkibName(donor.mawkibId)} — لا تُحتسب ضمنه تبرعاتك لمواكب أخرى.
+            </p>
+            {totals.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">لا توجد مساهمات مسجّلة بعد.</p>
+            ) : (
+              totals.map((t) => (
+                <div key={t.cur} className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg bg-secondary px-4 py-3">
+                    <p className="text-xs text-muted-foreground">التبرعات الشهرية</p>
+                    <p className="font-display text-xl font-bold text-primary">
+                      {formatMoney(t.paid, t.cur)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-secondary px-4 py-3">
+                    <p className="text-xs text-muted-foreground">مساهمات أخرى</p>
+                    <p className="font-display text-xl font-bold text-gold">
+                      {formatMoney(t.goals, t.cur)}
+                    </p>
+                  </div>
+                  <div className="gradient-emerald rounded-lg px-4 py-3">
+                    <p className="text-xs text-primary-foreground/80">الإجمالي</p>
+                    <p className="font-display text-xl font-bold text-primary-foreground">
+                      {formatMoney(t.paid + t.goals, t.cur)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-primary">
-                    {formatMoney(row.amount, row.currency)}
-                  </span>
-                  <StatusPill status={row.status} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              ))
+            )}
+          </section>
 
-      <MawkibPublicContent
-        goals={content.goals}
-        contributions={content.contributions}
-        posts={content.posts}
-        donorId={donor.id}
-      />
+          <section className="mt-6">
+            <h2 className="mb-3 font-display text-lg font-bold text-ink">سجل الدفعات والمساهمات</h2>
+            {historyRows.length === 0 ? (
+              <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+                لا توجد دفعات مسجّلة بعد.
+              </div>
+            ) : (
+              <ul className="surface-card divide-y divide-border">
+                {historyRows.map((row) => (
+                  <li
+                    key={row.key}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{row.title}</p>
+                      <p className="text-xs text-muted-foreground">{row.subtitle}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-primary">
+                        {formatMoney(row.amount, row.currency)}
+                      </span>
+                      <StatusPill status={row.status} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      ) : null}
 
+      {tab === "goals" ? (
+        <MawkibGoalsSection
+          goals={goalsForDonor}
+          contributions={content.contributions}
+          donorId={donor.id}
+        />
+      ) : null}
     </AppShell>
   );
 }
+
