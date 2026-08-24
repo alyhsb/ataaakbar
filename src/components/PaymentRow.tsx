@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { StatusPill } from "@/components/AppShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
-  formatIQD,
+  formatMoney,
   periodLabel,
   setPaymentStatus,
   updatePayment,
@@ -36,7 +36,7 @@ export function PaymentRow({ payment, donorName }: { payment: MonthlyPayment; do
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-primary">{formatIQD(payment.amount)}</span>
+          <span className="text-sm font-medium text-primary">{formatMoney(payment.amount, payment.currency)}</span>
           <StatusPill status={payment.status} />
           <ConfirmDialog
             title={paid ? "إلغاء تسجيل التبرع" : "تأكيد تسجيل التبرع"}
@@ -47,7 +47,7 @@ export function PaymentRow({ payment, donorName }: { payment: MonthlyPayment; do
             }
             details={[
               ...(donorName ? [{ label: "المتبرع", value: donorName }] : []),
-              { label: "المبلغ", value: formatIQD(payment.amount) },
+              { label: "المبلغ", value: formatMoney(payment.amount, payment.currency) },
               { label: "الشهر", value: periodLabel(payment.month, payment.year) },
               { label: "التاريخ", value: payment.paidAt ?? todayISO() },
               ...(payment.txnCode ? [{ label: "رقم العملية", value: payment.txnCode }] : []),
