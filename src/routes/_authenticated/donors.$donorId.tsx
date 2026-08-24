@@ -32,7 +32,11 @@ import {
   errorMessage,
   useStoreLoaded,
 } from "@/lib/donors-store";
-import { updateDonorCredentials } from "@/lib/accounts.functions";
+import {
+  updateDonorCredentials,
+  generateDonorActivationCode,
+} from "@/lib/accounts.functions";
+
 
 export const Route = createFileRoute("/_authenticated/donors/$donorId")({
   head: () => ({
