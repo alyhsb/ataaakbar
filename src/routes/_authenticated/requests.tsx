@@ -132,13 +132,13 @@ function RequestsPage() {
                   <div>
                     <p className="text-sm font-semibold text-ink">{d?.name ?? "متبرع"}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatMoney(r.currentAmount, r.currency)} ← {formatMoney(r.requestedAmount, r.currency)}
+                      {formatMoney(r.currentAmount, d?.currency ?? "IQD")} ← {formatMoney(r.requestedAmount, d?.currency ?? "IQD")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <ConfirmDialog
                       title="الموافقة على تعديل المبلغ"
-                      description={`سيصبح المبلغ الشهري ${formatMoney(r.requestedAmount, r.currency)}.`}
+                      description={`سيصبح المبلغ الشهري ${formatMoney(r.requestedAmount, d?.currency ?? "IQD")}.`}
                       confirmLabel="نعم، وافق"
                       onConfirm={async () => {
                         try {
