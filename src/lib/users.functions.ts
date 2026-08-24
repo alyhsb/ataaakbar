@@ -128,16 +128,21 @@ export const setAccountStatus = createServerFn({ method: "POST" })
     await requireAdmin(context);
     if (data.userId === context.userId) throw new Error("لا يمكنك تعطيل حسابك الخاص");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    const stillPending =
+      ((target?.user?.user_metadata ?? {}) as { activation_pending?: boolean })
+        .activation_pending === true;
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       ban_duration: data.active ? "none" : "876000h",
     });
     if (error) throw new Error(error.message);
     await supabaseAdmin
       .from("profiles")
-      .update({ status: data.active ? "active" : "inactive" })
+      .update({ status: data.active ? (stillPending ? "pending" : "active") : "inactive" })
       .eq("id", data.userId);
     return { ok: true };
   });
+
 
 /* ------------------------------------------------------------------ */
 /* Account recovery (forgot access code)                               */
