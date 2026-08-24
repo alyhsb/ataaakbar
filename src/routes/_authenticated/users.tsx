@@ -30,15 +30,17 @@ export const Route = createFileRoute("/_authenticated/users")({
   component: UsersPage,
 });
 
-type Filter = "all" | "donor" | "owner" | "active" | "inactive";
+type Filter = "all" | "donor" | "owner" | "active" | "pending" | "inactive";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "الكل" },
   { key: "donor", label: "المتبرعون" },
   { key: "owner", label: "أصحاب المواكب" },
   { key: "active", label: "نشِط" },
+  { key: "pending", label: "غير مُفعّل" },
   { key: "inactive", label: "معطّل" },
 ];
+
 
 function fmtDate(v: string | null) {
   return v ? new Date(v).toLocaleDateString("ar-IQ") : "—";
@@ -74,7 +76,9 @@ function UsersPage() {
       if (filter === "donor" && u.role !== "donor") return false;
       if (filter === "owner" && u.role !== "owner") return false;
       if (filter === "active" && u.status !== "active") return false;
+      if (filter === "pending" && u.status !== "pending") return false;
       if (filter === "inactive" && u.status !== "inactive") return false;
+
       if (!q) return true;
       return u.name.includes(q) || u.phone.replace(/\D/g, "").includes(q.replace(/\D/g, ""));
     });
@@ -149,7 +153,12 @@ function UsersPage() {
                     <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
                       معطّل
                     </span>
+                  ) : u.status === "pending" ? (
+                    <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-gold">
+                      غير مُفعّل
+                    </span>
                   ) : null}
+
                 </p>
                 <p className="text-xs text-muted-foreground" dir="ltr">
                   {u.phone}

@@ -32,7 +32,11 @@ import {
   errorMessage,
   useStoreLoaded,
 } from "@/lib/donors-store";
-import { updateDonorCredentials } from "@/lib/accounts.functions";
+import {
+  updateDonorCredentials,
+  generateDonorActivationCode,
+} from "@/lib/accounts.functions";
+
 
 export const Route = createFileRoute("/_authenticated/donors/$donorId")({
   head: () => ({
@@ -56,8 +60,11 @@ function DonorDetails() {
   const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
   const updateAccount = useServerFn(updateDonorCredentials);
+  const makeActivationCode = useServerFn(generateDonorActivationCode);
   const [newPhone, setNewPhone] = useState("");
+  const [activation, setActivation] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
 
   if (!donor) {
     return (
@@ -174,6 +181,47 @@ function DonorDetails() {
                 ? `يسجّل الدخول برقم هاتفه ${donor.phone} ورمز دخول خاص به لا تطّلع عليه الإدارة.`
                 : "لا يملك حساب دخول بعد. يسجّل المتبرع بنفسه برقم هاتفه وينشئ رمز دخوله الخاص."}
             </p>
+            <div className="space-y-2 rounded-lg bg-secondary p-3">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                إذا لم يفعّل المتبرع حسابه بعد، أنشئ له «رمز تفعيل لمرة واحدة» وسلّمه له ليضع رمز
+                دخوله الخاص. يبطل الرمز نهائياً بعد الاستخدام.
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const res = await makeActivationCode({ data: { donorId: donor.id } });
+                    setActivation(res.code);
+                    await loadAll();
+                    toast.success("تم إنشاء رمز التفعيل");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "تعذّر إنشاء رمز التفعيل");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="w-full rounded-lg border border-gold/50 bg-card px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/10 disabled:opacity-60"
+              >
+                إنشاء رمز تفعيل لمرة واحدة
+              </button>
+              {activation ? (
+                <div className="rounded-lg border border-gold/50 bg-gold/10 p-3 text-center">
+                  <p className="text-[11px] text-muted-foreground">سلّم هذا الرمز للمتبرع</p>
+                  <p
+                    className="font-display text-xl font-bold tracking-[0.3em] text-ink"
+                    dir="ltr"
+                  >
+                    {activation}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    صالح لمرة واحدة فقط ولمدة ٣٠ يوماً.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
             <div className="space-y-2">
               <input
                 type="tel"

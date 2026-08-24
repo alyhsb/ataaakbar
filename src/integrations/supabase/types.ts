@@ -132,6 +132,50 @@ export type Database = {
           },
         ]
       }
+      donor_activation_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string | null
+          donor_id: string | null
+          expires_at: string
+          id: string
+          phone: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by?: string | null
+          donor_id?: string | null
+          expires_at?: string
+          id?: string
+          phone: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string | null
+          donor_id?: string | null
+          expires_at?: string
+          id?: string
+          phone?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donor_activation_codes_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "donors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donors: {
         Row: {
           access_code: string | null

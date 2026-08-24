@@ -10,8 +10,10 @@ import {
   checkAccountRecovery,
   completeAccountRecovery,
   registerDonorAccount,
+  activateDonorAccount,
   lookupDonorPhone,
 } from "@/lib/users.functions";
+
 
 
 export const Route = createFileRoute("/")({
@@ -51,20 +53,24 @@ function WelcomePage() {
   const [phone, setPhone] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [fullName, setFullName] = useState("");
-  const [mode, setMode] = useState<"login" | "register" | "recover">("login");
+  const [mode, setMode] = useState<"login" | "register" | "activate" | "recover">("login");
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
   const [recoveryStatus, setRecoveryStatus] = useState<"idle" | "pending" | "approved">("idle");
   const [preRegistered, setPreRegistered] = useState<{ name: string | null } | null>(null);
+  const [activationCode, setActivationCode] = useState("");
+  const [needsActivation, setNeedsActivation] = useState(false);
 
   async function checkPhone() {
-    if (choice !== "donor" || mode !== "register") return;
+    if (choice !== "donor" || (mode !== "register" && mode !== "login")) return;
     if (phone.replace(/\D/g, "").length < 7) {
       setPreRegistered(null);
+      setNeedsActivation(false);
       return;
     }
     try {
       const res = await lookupDonorPhone({ data: { phone } });
+      setNeedsActivation(res.needsActivation);
       if (res.preRegistered) {
         setPreRegistered({ name: res.name });
         if (res.name && !fullName.trim()) setFullName(res.name);
@@ -73,8 +79,10 @@ function WelcomePage() {
       }
     } catch {
       setPreRegistered(null);
+      setNeedsActivation(false);
     }
   }
+
 
   useEffect(() => {
     if (ready && userId && role) {
@@ -128,6 +136,26 @@ function WelcomePage() {
         return;
       }
 
+      if (choice === "donor" && mode === "activate") {
+        if (activationCode.trim().length < 4) throw new Error("أدخل رمز التفعيل الذي زوّدك به الموكب");
+        if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
+        await activateDonorAccount({
+          data: { phone, activationCode: activationCode.trim(), accessCode },
+        });
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: toLoginEmail(phone),
+          password: accessCode,
+        });
+        setActivationCode("");
+        setNeedsActivation(false);
+        if (signInError) {
+          setMode("login");
+          throw new Error("تم تفعيل الحساب، سجّل الدخول برقمك ورمزك الجديد");
+        }
+        toast.success("تم تفعيل حسابك بنجاح، ورمز التفعيل أصبح غير صالح للاستخدام مرة أخرى");
+        return;
+      }
+
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
@@ -139,7 +167,11 @@ function WelcomePage() {
           linkedMemberships = res.linkedMemberships;
         } catch (err) {
           const message = err instanceof Error ? err.message : "تعذّر إنشاء الحساب";
-          if (/موجود مسبقاً/.test(message)) setDuplicate(true);
+          if (/غير مُفعّل/.test(message)) {
+            setNeedsActivation(true);
+            setMode("activate");
+            setAccessCode("");
+          } else if (/موجود مسبقاً/.test(message)) setDuplicate(true);
           throw new Error(message);
         }
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -158,7 +190,25 @@ function WelcomePage() {
         email: toLoginEmail(phone),
         password: accessCode,
       });
-      if (error) throw new Error("رقم الهاتف أو رمز الدخول غير صحيح");
+      if (error) {
+        if (choice === "donor") {
+          try {
+            const res = await lookupDonorPhone({ data: { phone } });
+            if (res.needsActivation) {
+              setNeedsActivation(true);
+              setMode("activate");
+              setAccessCode("");
+              throw new Error(
+                "حسابك مُنشأ من قبل إدارة الموكب وغير مُفعّل. أدخل رمز التفعيل لإنشاء رمز دخولك الخاص.",
+              );
+            }
+          } catch (lookupErr) {
+            if (lookupErr instanceof Error && /غير مُفعّل/.test(lookupErr.message)) throw lookupErr;
+          }
+        }
+        throw new Error("رقم الهاتف أو رمز الدخول غير صحيح");
+      }
+
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "تعذّر تسجيل الدخول");
     } finally {
@@ -255,11 +305,13 @@ function WelcomePage() {
                     ? "تسجيل الدخول لصاحب الموكب"
                     : mode === "login"
                       ? "تسجيل الدخول للمتبرع"
-                      : "إنشاء حساب متبرع جديد"}
+                      : mode === "activate"
+                        ? "تفعيل حساب أنشأه الموكب"
+                        : "إنشاء حساب متبرع جديد"}
               </h2>
               {choice === "donor" && mode !== "recover" ? (
                 <div className="flex rounded-lg bg-secondary p-1">
-                  {(["login", "register"] as const).map((m) => (
+                  {(["login", "register", "activate"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -267,15 +319,16 @@ function WelcomePage() {
                         setMode(m);
                         setDuplicate(false);
                       }}
-                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-colors ${
+                      className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-colors ${
                         mode === m ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                       }`}
                     >
-                      {m === "login" ? "تسجيل الدخول" : "حساب جديد"}
+                      {m === "login" ? "تسجيل الدخول" : m === "register" ? "حساب جديد" : "تفعيل حساب"}
                     </button>
                   ))}
                 </div>
               ) : null}
+
 
               {duplicate ? (
                 <div className="space-y-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm text-ink">
@@ -333,6 +386,25 @@ function WelcomePage() {
                   سجل مكرّر.
                 </div>
               ) : null}
+              {choice === "donor" && mode === "activate" ? (
+                <p className="rounded-lg bg-secondary p-3 text-xs leading-relaxed text-muted-foreground">
+                  إذا أضافك الموكب إلى قائمة متبرعيه فحسابك جاهز لكن «غير مُفعّل». اطلب من إدارة
+                  الموكب «رمز تفعيل لمرة واحدة»، ثم أدخله هنا مع رمز دخول خاص بك — يصبح رمز التفعيل
+                  غير صالح بعد ذلك نهائياً.
+                </p>
+              ) : null}
+              {choice === "donor" && mode === "login" && needsActivation ? (
+                <div className="space-y-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs leading-relaxed text-ink">
+                  حسابك مُنشأ من قبل إدارة الموكب وغير مُفعّل بعد.
+                  <button
+                    type="button"
+                    onClick={() => setMode("activate")}
+                    className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                  >
+                    تفعيل الحساب برمز التفعيل
+                  </button>
+                </div>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">رقم الهاتف</span>
                 <input
@@ -345,10 +417,25 @@ function WelcomePage() {
                   className={inputCls}
                 />
               </label>
+              {choice === "donor" && mode === "activate" ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    رمز التفعيل لمرة واحدة
+                  </span>
+                  <input
+                    required
+                    value={activationCode}
+                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                    placeholder="مثال: A7K2M9QP"
+                    dir="ltr"
+                    className={`${inputCls} tracking-widest`}
+                  />
+                </label>
+              ) : null}
               {mode !== "recover" || recoveryStatus === "approved" ? (
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-ink">
-                    {mode === "recover" ? "رمز الدخول الجديد" : "رمز الدخول"}
+                    {mode === "recover" || mode === "activate" ? "رمز الدخول الجديد" : "رمز الدخول"}
                   </span>
                   <input
                     required
@@ -374,8 +461,11 @@ function WelcomePage() {
                       : "إرسال طلب الاستعادة"
                   : choice === "donor" && mode === "register"
                     ? "إنشاء الحساب"
-                    : "تسجيل الدخول"}
+                    : choice === "donor" && mode === "activate"
+                      ? "تفعيل الحساب"
+                      : "تسجيل الدخول"}
               </button>
+
               {mode === "recover" ? (
                 <button
                   type="button"

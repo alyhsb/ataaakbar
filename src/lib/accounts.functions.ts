@@ -110,11 +110,128 @@ export const createDonorWithAccount = createServerFn({ method: "POST" })
       throw new Error(donorError.message);
     }
 
-    // No login account is created here: the donor registers by themselves with
-    // their phone number and an access code only they know (privacy by design).
+    // A donor has exactly ONE application account. If an account already exists
+    // for this phone we link it to the new membership; otherwise we pre-create an
+    // inactive account ("غير مُفعّل") the donor activates later with a one-time code.
+    const email = loginEmail(data.phone);
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const existingUser =
+      (users?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email) ?? null;
 
-    return { donorId: donor.id as string };
+    let userId = existingUser?.id ?? null;
+    let createdAccount = false;
+    if (!userId) {
+      const { data: created, error: userError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+        email_confirm: true,
+        user_metadata: {
+          full_name: data.name,
+          phone: data.phone,
+          account_type: "donor",
+          activation_pending: true,
+        },
+      });
+      if (!userError && created?.user) {
+        userId = created.user.id;
+        createdAccount = true;
+        await supabaseAdmin.from("profiles").update({ status: "pending" }).eq("id", userId);
+      }
+    }
+
+    if (userId) {
+      await supabaseAdmin.from("donors").update({ user_id: userId }).eq("id", donor.id);
+    }
+
+    return { donorId: donor.id as string, accountCreated: createdAccount, linked: Boolean(userId) };
   });
+
+const ACTIVATION_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function randomActivationCode() {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => ACTIVATION_ALPHABET[b % ACTIVATION_ALPHABET.length]).join("");
+}
+
+async function hashCode(code: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code.toUpperCase()));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Admin / mawkib owner: issues a one-time activation code for a pre-created donor
+ * account. Any previous unused code is invalidated. The plaintext is returned once.
+ */
+export const generateDonorActivationCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ donorId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const caller = await resolveCaller(context);
+    if (!caller.isAdmin && !caller.isOwner) throw new Error("غير مصرح لك بإنشاء رموز التفعيل");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: donor } = await supabaseAdmin
+      .from("donors")
+      .select("id, name, phone, user_id, mawkib_id")
+      .eq("id", data.donorId)
+      .maybeSingle();
+    if (!donor) throw new Error("المتبرع غير موجود");
+    if (!caller.isAdmin && donor.mawkib_id !== caller.mawkibId)
+      throw new Error("هذا المتبرع لا يتبع موكبك");
+
+    const email = loginEmail(donor.phone as string);
+    let userId = donor.user_id as string | null;
+    if (!userId) {
+      const { data: users } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const found = (users?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email);
+      if (found) {
+        userId = found.id;
+      } else {
+        const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+          email_confirm: true,
+          user_metadata: {
+            full_name: donor.name,
+            phone: donor.phone,
+            account_type: "donor",
+            activation_pending: true,
+          },
+        });
+        if (error || !created?.user) throw new Error(error?.message ?? "تعذّر إنشاء حساب المتبرع");
+        userId = created.user.id;
+        await supabaseAdmin.from("profiles").update({ status: "pending" }).eq("id", userId);
+      }
+      await supabaseAdmin.from("donors").update({ user_id: userId }).eq("id", donor.id);
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("status")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profile?.status === "active")
+      throw new Error("هذا الحساب مُفعّل بالفعل — يسجّل المتبرع الدخول برمزه الخاص");
+
+    const code = randomActivationCode();
+    await supabaseAdmin
+      .from("donor_activation_codes")
+      .delete()
+      .eq("user_id", userId)
+      .is("used_at", null);
+    const { error: insertError } = await supabaseAdmin.from("donor_activation_codes").insert({
+      user_id: userId,
+      donor_id: donor.id as string,
+      phone: donor.phone as string,
+      code_hash: await hashCode(code),
+      created_by: context.userId,
+    });
+    if (insertError) throw new Error(insertError.message);
+
+    return { code, phone: donor.phone as string, expiresInDays: 30 };
+  });
+
 
 /** Admin / mawkib owner: changes a donor's name or phone (never their access code). */
 export const updateDonorCredentials = createServerFn({ method: "POST" })
