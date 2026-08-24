@@ -1,6 +1,6 @@
 import { Target, CalendarDays, CheckCircle2 } from "lucide-react";
 import { MawkibImage } from "@/components/MawkibImage";
-import { formatIQD } from "@/lib/donors-store";
+import { formatMoney } from "@/lib/donors-store";
 import {
   goalRaised,
   goalProgress,
@@ -34,10 +34,10 @@ export function MawkibPublicContent({
           </h2>
           <div className="grid gap-4 lg:grid-cols-2">
             {visibleGoals.map((g) => {
-              const raised = goalRaised(contributions, g.id);
+              const raised = goalRaised(contributions, g.id, g.currency);
               const pct = goalProgress(raised, g.targetAmount);
               const mine = contributions
-                .filter((c) => c.goalId === g.id && c.donorId === donorId)
+                .filter((c) => c.goalId === g.id && c.donorId === donorId && c.currency === g.currency)
                 .reduce((s, c) => s + c.amount, 0);
               return (
                 <article key={g.id} className="surface-card overflow-hidden">
@@ -66,16 +66,16 @@ export function MawkibPublicContent({
                     <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
                       <div className="rounded-lg bg-secondary px-3 py-2">
                         <dt className="text-muted-foreground">الهدف</dt>
-                        <dd className="font-semibold text-ink">{formatIQD(g.targetAmount)}</dd>
+                        <dd className="font-semibold text-ink">{formatMoney(g.targetAmount, g.currency)}</dd>
                       </div>
                       <div className="rounded-lg bg-secondary px-3 py-2">
                         <dt className="text-muted-foreground">تم جمع</dt>
-                        <dd className="font-semibold text-primary">{formatIQD(raised)}</dd>
+                        <dd className="font-semibold text-primary">{formatMoney(raised, g.currency)}</dd>
                       </div>
                       <div className="rounded-lg bg-secondary px-3 py-2">
                         <dt className="text-muted-foreground">المتبقي</dt>
                         <dd className="font-semibold text-ink">
-                          {formatIQD(Math.max(g.targetAmount - raised, 0))}
+                          {formatMoney(Math.max(g.targetAmount - raised, 0), g.currency)}
                         </dd>
                       </div>
                     </dl>
@@ -84,7 +84,9 @@ export function MawkibPublicContent({
                       <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
                         <div className="gradient-emerald h-full rounded-full" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="mt-1.5 text-xs font-semibold text-muted-foreground">{pct}%</p>
+                      <p className="mt-1.5 text-xs font-semibold text-muted-foreground">
+                        {pct}% من إجمالي المبلغ المجموع للهدف
+                      </p>
                     </div>
 
                     {g.deadline ? (
@@ -94,7 +96,7 @@ export function MawkibPublicContent({
                     ) : null}
 
                     <p className="mt-3 rounded-lg bg-gold/10 px-3 py-2 text-xs font-semibold text-gold">
-                      مساهمتي في هذا الهدف: {formatIQD(mine)}
+                      مساهمتي في هذا الهدف: {formatMoney(mine, g.currency)}
                     </p>
                     {g.status === "active" ? (
                       <p className="mt-2 text-[11px] text-muted-foreground">
