@@ -362,7 +362,9 @@ export const activateDonorAccount = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
       password: data.accessCode,
+      user_metadata: { ...(user.user_metadata ?? {}), activation_pending: false },
     });
+
     if (error) throw new Error(error.message);
 
     await supabaseAdmin
