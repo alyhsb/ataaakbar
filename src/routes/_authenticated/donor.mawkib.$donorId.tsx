@@ -55,6 +55,7 @@ function MembershipPage() {
   const history = useAmountHistory(donorId);
   const [amount, setAmount] = useState<number | "">("");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<"home" | "payments" | "goals">("home");
   const content = useMawkibContent(donor?.mawkibId);
 
 
