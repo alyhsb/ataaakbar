@@ -10,7 +10,7 @@ import {
   useAllDonors,
   decideMembership,
   decideAmountRequest,
-  formatIQD,
+  formatMoney,
   mawkibName,
   errorMessage,
 } from "@/lib/donors-store";
@@ -56,7 +56,7 @@ function RequestsPage() {
                     {d.phone}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {mawkibName(d.mawkibId)} • {formatIQD(d.monthlyAmount)} شهرياً
+                    {mawkibName(d.mawkibId)} • {formatMoney(d.monthlyAmount, d.currency)} شهرياً
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -132,13 +132,13 @@ function RequestsPage() {
                   <div>
                     <p className="text-sm font-semibold text-ink">{d?.name ?? "متبرع"}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatIQD(r.currentAmount)} ← {formatIQD(r.requestedAmount)}
+                      {formatMoney(r.currentAmount, r.currency)} ← {formatMoney(r.requestedAmount, r.currency)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <ConfirmDialog
                       title="الموافقة على تعديل المبلغ"
-                      description={`سيصبح المبلغ الشهري ${formatIQD(r.requestedAmount)}.`}
+                      description={`سيصبح المبلغ الشهري ${formatMoney(r.requestedAmount, r.currency)}.`}
                       confirmLabel="نعم، وافق"
                       onConfirm={async () => {
                         try {
