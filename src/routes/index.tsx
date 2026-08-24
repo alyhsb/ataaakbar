@@ -136,6 +136,26 @@ function WelcomePage() {
         return;
       }
 
+      if (choice === "donor" && mode === "activate") {
+        if (activationCode.trim().length < 4) throw new Error("أدخل رمز التفعيل الذي زوّدك به الموكب");
+        if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
+        await activateDonorAccount({
+          data: { phone, activationCode: activationCode.trim(), accessCode },
+        });
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: toLoginEmail(phone),
+          password: accessCode,
+        });
+        setActivationCode("");
+        setNeedsActivation(false);
+        if (signInError) {
+          setMode("login");
+          throw new Error("تم تفعيل الحساب، سجّل الدخول برقمك ورمزك الجديد");
+        }
+        toast.success("تم تفعيل حسابك بنجاح، ورمز التفعيل أصبح غير صالح للاستخدام مرة أخرى");
+        return;
+      }
+
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
@@ -147,7 +167,11 @@ function WelcomePage() {
           linkedMemberships = res.linkedMemberships;
         } catch (err) {
           const message = err instanceof Error ? err.message : "تعذّر إنشاء الحساب";
-          if (/موجود مسبقاً/.test(message)) setDuplicate(true);
+          if (/غير مُفعّل/.test(message)) {
+            setNeedsActivation(true);
+            setMode("activate");
+            setAccessCode("");
+          } else if (/موجود مسبقاً/.test(message)) setDuplicate(true);
           throw new Error(message);
         }
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -166,7 +190,25 @@ function WelcomePage() {
         email: toLoginEmail(phone),
         password: accessCode,
       });
-      if (error) throw new Error("رقم الهاتف أو رمز الدخول غير صحيح");
+      if (error) {
+        if (choice === "donor") {
+          try {
+            const res = await lookupDonorPhone({ data: { phone } });
+            if (res.needsActivation) {
+              setNeedsActivation(true);
+              setMode("activate");
+              setAccessCode("");
+              throw new Error(
+                "حسابك مُنشأ من قبل إدارة الموكب وغير مُفعّل. أدخل رمز التفعيل لإنشاء رمز دخولك الخاص.",
+              );
+            }
+          } catch (lookupErr) {
+            if (lookupErr instanceof Error && /غير مُفعّل/.test(lookupErr.message)) throw lookupErr;
+          }
+        }
+        throw new Error("رقم الهاتف أو رمز الدخول غير صحيح");
+      }
+
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "تعذّر تسجيل الدخول");
     } finally {
