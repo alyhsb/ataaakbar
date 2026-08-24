@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { CURRENCY_LABELS, CURRENCIES, formatMoney, type Currency } from "@/lib/donors-store";
 
 export type DonorFormValues = {
   name: string;
@@ -7,12 +8,18 @@ export type DonorFormValues = {
   area: string;
   location: string;
   monthlyAmount: number;
+  currency: Currency;
   dueDay: number;
   notes: string;
 };
 
 
-const amounts = [25000, 50000, 75000, 100000];
+const amounts: Record<Currency, number[]> = {
+  IQD: [25000, 50000, 75000, 100000],
+  USD: [10, 20, 50, 100],
+};
+
+const minAmount: Record<Currency, number> = { IQD: 1000, USD: 1 };
 
 const inputCls =
   "w-full rounded-lg border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
@@ -58,8 +65,9 @@ export function DonorForm({
     if (!/^[\d\s+-]{7,20}$/.test(phone)) e.phone = "رقم هاتف غير صالح";
     if (values.area.trim().length > 60) e.area = "اسم المنطقة طويل جداً";
     if (values.location.trim().length > 120) e.location = "العنوان طويل جداً";
-    if (!Number.isFinite(values.monthlyAmount) || values.monthlyAmount < 1000)
-      e.monthlyAmount = "أقل مبلغ هو ١٠٠٠ دينار";
+    if (!Number.isFinite(values.monthlyAmount) || values.monthlyAmount < minAmount[values.currency])
+      e.monthlyAmount =
+        values.currency === "USD" ? "أقل مبلغ هو ١ دولار" : "أقل مبلغ هو ١٠٠٠ دينار";
     if (!Number.isFinite(values.dueDay) || values.dueDay < 1 || values.dueDay > 28)
       e.dueDay = "يوم الاستحقاق يجب أن يكون بين ١ و ٢٨";
     if (values.notes.length > 500) e.notes = "الملاحظات يجب ألا تتجاوز ٥٠٠ حرف";
@@ -88,6 +96,7 @@ export function DonorForm({
           area: form.area.trim(),
           location: form.location.trim(),
           monthlyAmount: Number(form.monthlyAmount),
+          currency: form.currency,
           dueDay: Number(form.dueDay),
           notes: form.notes.trim(),
         });
@@ -131,11 +140,27 @@ export function DonorForm({
             className={inputCls}
           />
         </Field>
-        <Field label="مبلغ التبرع الشهري (د.ع)" error={errors.monthlyAmount}>
+        <Field label="عملة التبرع">
+          <select
+            value={form.currency}
+            onChange={(e) => set("currency", e.target.value as Currency)}
+            className={inputCls}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {CURRENCY_LABELS[c]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field
+          label={`مبلغ التبرع الشهري (${form.currency === "USD" ? "$" : "د.ع"})`}
+          error={errors.monthlyAmount}
+        >
           <input
             type="number"
-            min={1000}
-            step={1000}
+            min={minAmount[form.currency]}
+            step={form.currency === "USD" ? 1 : 1000}
             value={form.monthlyAmount}
             onChange={(e) => set("monthlyAmount", Number(e.target.value))}
             className={inputCls}
@@ -159,13 +184,13 @@ export function DonorForm({
 
       {pendingAmountConfirm ? (
         <div className="rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs text-ink">
-          سيتم تغيير مبلغ التبرع الشهري من {initial.monthlyAmount.toLocaleString("ar-IQ")} د.ع إلى{" "}
-          {Number(form.monthlyAmount).toLocaleString("ar-IQ")} د.ع. اضغط «تأكيد الحفظ» للمتابعة.
+          سيتم تغيير مبلغ التبرع الشهري من {formatMoney(initial.monthlyAmount, initial.currency)} إلى{" "}
+          {formatMoney(Number(form.monthlyAmount), form.currency)}. اضغط «تأكيد الحفظ» للمتابعة.
         </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {amounts.map((a) => (
+        {amounts[form.currency].map((a) => (
           <button
             key={a}
             type="button"
@@ -176,7 +201,7 @@ export function DonorForm({
                 : "border-border text-muted-foreground hover:border-primary/40"
             }`}
           >
-            {a.toLocaleString("ar-IQ")} د.ع
+            {formatMoney(a, form.currency)}
           </button>
         ))}
       </div>

@@ -9,7 +9,10 @@ import {
   useMyMemberships,
   requestJoinMawkib,
   errorMessage,
-  formatIQD,
+  formatMoney,
+  CURRENCIES,
+  CURRENCY_LABELS,
+  type Currency,
 } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/donor/browse")({
@@ -37,6 +40,7 @@ function BrowseMawakibPage() {
   const memberships = useMyMemberships(userId ?? undefined);
   const [selected, setSelected] = useState<string | null>(null);
   const [amount, setAmount] = useState(10000);
+  const [currency, setCurrency] = useState<Currency>("IQD");
   const [busy, setBusy] = useState(false);
 
   const me = memberships[0];
@@ -54,6 +58,7 @@ function BrowseMawakibPage() {
         phone: me?.phone ?? "",
         mawkibId,
         monthlyAmount: amount,
+        currency,
         area: me?.area ?? "",
         location: me?.location ?? "",
       });
@@ -90,19 +95,33 @@ function BrowseMawakibPage() {
               {selected === m.id ? (
                 <div className="mt-4 space-y-3">
                   <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-ink">عملة التبرع</span>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value as Currency)}
+                      className={inputCls}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c} value={c}>
+                          {CURRENCY_LABELS[c]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-ink">
                       مبلغ التبرع الشهري
                     </span>
                     <input
                       type="number"
-                      min={1000}
-                      step={1000}
+                      min={currency === "USD" ? 1 : 1000}
+                      step={currency === "USD" ? 1 : 1000}
                       value={amount}
                       onChange={(e) => setAmount(Number(e.target.value))}
                       className={inputCls}
                     />
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      {formatIQD(amount || 0)}
+                      {formatMoney(amount || 0, currency)}
                     </span>
                   </label>
                   <div className="flex gap-2">

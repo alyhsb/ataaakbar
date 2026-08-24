@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { errorMessage } from "@/lib/donors-store";
+import { asCurrency, errorMessage, type Currency } from "@/lib/donors-store";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -14,6 +14,7 @@ export type MawkibGoal = {
   title: string;
   description: string;
   targetAmount: number;
+  currency: Currency;
   imageUrl?: string | undefined;
   deadline?: string | undefined;
   status: GoalStatus;
@@ -26,6 +27,7 @@ export type GoalContribution = {
   goalId: string;
   donorId: string;
   amount: number;
+  currency: Currency;
   contributedOn: string;
   notes?: string | undefined;
 };
@@ -59,6 +61,7 @@ const mapGoal = (r: Row): MawkibGoal => ({
   title: r["title"] as string,
   description: (r["description"] as string) ?? "",
   targetAmount: Number(r["target_amount"] ?? 0),
+  currency: asCurrency(r["currency"]),
   imageUrl: (r["image_url"] as string | null) ?? undefined,
   deadline: (r["deadline"] as string | null) ?? undefined,
   status: ((r["status"] as string) ?? "active") as GoalStatus,
@@ -71,6 +74,7 @@ const mapContribution = (r: Row): GoalContribution => ({
   goalId: r["goal_id"] as string,
   donorId: r["donor_id"] as string,
   amount: Number(r["amount"] ?? 0),
+  currency: asCurrency(r["currency"]),
   contributedOn: r["contributed_on"] as string,
   notes: (r["notes"] as string | null) ?? undefined,
 });
@@ -160,8 +164,15 @@ export function useMawkibContent(mawkibId: string | undefined): MawkibContent {
 /* Derived helpers                                                     */
 /* ------------------------------------------------------------------ */
 
-export function goalRaised(contributions: GoalContribution[], goalId: string) {
-  return contributions.filter((c) => c.goalId === goalId).reduce((s, c) => s + c.amount, 0);
+/** Total collected for a goal from ALL donors, in the goal's own currency only. */
+export function goalRaised(
+  contributions: GoalContribution[],
+  goalId: string,
+  currency?: Currency,
+) {
+  return contributions
+    .filter((c) => c.goalId === goalId && (currency ? c.currency === currency : true))
+    .reduce((s, c) => s + c.amount, 0);
 }
 
 export function goalProgress(raised: number, target: number) {
@@ -221,6 +232,7 @@ export async function saveGoal(input: {
   title: string;
   description: string;
   targetAmount: number;
+  currency: Currency;
   imageUrl?: string | undefined;
   deadline?: string | undefined;
   status: GoalStatus;
@@ -231,6 +243,7 @@ export async function saveGoal(input: {
     title: input.title,
     description: input.description,
     target_amount: input.targetAmount,
+    currency: input.currency,
     image_url: input.imageUrl ?? null,
     deadline: input.deadline && input.deadline !== "" ? input.deadline : null,
     status: input.status,
@@ -262,6 +275,7 @@ export async function addGoalContribution(input: {
   goalId: string;
   donorId: string;
   amount: number;
+  currency: Currency;
   contributedOn: string;
   notes?: string | undefined;
 }) {
@@ -269,6 +283,7 @@ export async function addGoalContribution(input: {
     goal_id: input.goalId,
     donor_id: input.donorId,
     amount: input.amount,
+    currency: input.currency,
     contributed_on: input.contributedOn,
     notes: input.notes ?? null,
   });

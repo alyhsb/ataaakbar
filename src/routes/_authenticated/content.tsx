@@ -10,7 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   useMawakib,
   useAllDonors,
-  formatIQD,
+  formatMoney,
+  CURRENCIES,
+  CURRENCY_LABELS,
+  type Currency,
   errorMessage,
   todayISO,
 } from "@/lib/donors-store";
@@ -63,6 +66,7 @@ type GoalDraft = {
   title: string;
   description: string;
   targetAmount: number | "";
+  currency: Currency;
   deadline: string;
   status: GoalStatus;
   published: boolean;
@@ -83,6 +87,7 @@ const emptyGoal: GoalDraft = {
   title: "",
   description: "",
   targetAmount: "",
+  currency: "IQD",
   deadline: "",
   status: "active",
   published: false,
@@ -144,6 +149,7 @@ function ContentPage() {
         title: goalDraft.title.trim(),
         description: goalDraft.description,
         targetAmount: Number(goalDraft.targetAmount || 0),
+        currency: goalDraft.currency,
         imageUrl: goalDraft.imageUrl,
         deadline: goalDraft.deadline,
         status: goalDraft.status,
@@ -272,6 +278,22 @@ function ContentPage() {
                     />
                   </label>
                   <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-ink">عملة الهدف</span>
+                    <select
+                      value={goalDraft.currency}
+                      onChange={(e) =>
+                        setGoalDraft({ ...goalDraft, currency: e.target.value as Currency })
+                      }
+                      className={inputCls}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c} value={c}>
+                          {CURRENCY_LABELS[c]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-ink">
                       آخر موعد (اختياري)
                     </span>
@@ -359,8 +381,10 @@ function ContentPage() {
                   <GoalCard
                     key={g.id}
                     goal={g}
-                    raised={goalRaised(content.contributions, g.id)}
-                    contributions={content.contributions.filter((c) => c.goalId === g.id)}
+                    raised={goalRaised(content.contributions, g.id, g.currency)}
+                    contributions={content.contributions.filter(
+                      (c) => c.goalId === g.id && c.currency === g.currency,
+                    )}
                     members={members.map((m) => ({ id: m.id, name: m.name }))}
                     onEdit={() =>
                       setGoalDraft({
@@ -368,6 +392,7 @@ function ContentPage() {
                         title: g.title,
                         description: g.description,
                         targetAmount: g.targetAmount,
+                        currency: g.currency,
                         deadline: g.deadline ?? "",
                         status: g.status,
                         published: g.published,
@@ -547,7 +572,14 @@ function GoalCard({
 }: {
   goal: MawkibGoal;
   raised: number;
-  contributions: { id: string; donorId: string; amount: number; contributedOn: string; notes?: string | undefined }[];
+  contributions: {
+    id: string;
+    donorId: string;
+    amount: number;
+    currency: Currency;
+    contributedOn: string;
+    notes?: string | undefined;
+  }[];
   members: { id: string; name: string }[];
   onEdit: () => void;
   onChanged: () => void;
@@ -568,6 +600,7 @@ function GoalCard({
         goalId: goal.id,
         donorId,
         amount: Number(amount),
+        currency: goal.currency,
         contributedOn: date,
         notes: notes || undefined,
       });
@@ -668,16 +701,16 @@ function GoalCard({
       <dl className="mt-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
         <div className="rounded-lg bg-secondary px-3 py-2">
           <dt className="text-muted-foreground">الهدف</dt>
-          <dd className="font-semibold text-ink">{formatIQD(goal.targetAmount)}</dd>
+          <dd className="font-semibold text-ink">{formatMoney(goal.targetAmount, goal.currency)}</dd>
         </div>
         <div className="rounded-lg bg-secondary px-3 py-2">
           <dt className="text-muted-foreground">تم جمع</dt>
-          <dd className="font-semibold text-primary">{formatIQD(raised)}</dd>
+          <dd className="font-semibold text-primary">{formatMoney(raised, goal.currency)}</dd>
         </div>
         <div className="rounded-lg bg-secondary px-3 py-2">
           <dt className="text-muted-foreground">المتبقي</dt>
           <dd className="font-semibold text-ink">
-            {formatIQD(Math.max(goal.targetAmount - raised, 0))}
+            {formatMoney(Math.max(goal.targetAmount - raised, 0), goal.currency)}
           </dd>
         </div>
         <div className="rounded-lg bg-secondary px-3 py-2">
@@ -715,7 +748,7 @@ function GoalCard({
             <input
               type="number"
               min={0}
-              placeholder="المبلغ"
+              placeholder={`المبلغ (${goal.currency === "USD" ? "$" : "د.ع"})`}
               value={amount}
               onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
               className={inputCls}
@@ -761,7 +794,7 @@ function GoalCard({
                     <span className="mr-2 text-xs text-muted-foreground">{c.contributedOn}</span>
                   </span>
                   <span className="flex items-center gap-3">
-                    <span className="font-semibold text-primary">{formatIQD(c.amount)}</span>
+                    <span className="font-semibold text-primary">{formatMoney(c.amount, c.currency)}</span>
                     <button
                       type="button"
                       onClick={async () => {

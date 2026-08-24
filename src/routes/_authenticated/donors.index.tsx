@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   useAllDonors,
   donorStatus,
-  formatIQD,
+  formatMoney,
   deleteDonor,
   restoreDonor,
   purgeDonor,
@@ -151,7 +151,7 @@ function DonorsList() {
                 </td>
                 <td className="px-5 py-3.5 font-semibold text-ink">{d.name}</td>
                 <td className="px-5 py-3.5 text-muted-foreground">{d.phone}</td>
-                <td className="px-5 py-3.5 font-medium text-primary">{formatIQD(d.monthlyAmount)}</td>
+                <td className="px-5 py-3.5 font-medium text-primary">{formatMoney(d.monthlyAmount, d.currency)}</td>
                 <td className="px-5 py-3.5 text-muted-foreground">{last ?? "لا يوجد"}</td>
                 <td className="px-5 py-3.5">
                   {d.deletedAt ? (

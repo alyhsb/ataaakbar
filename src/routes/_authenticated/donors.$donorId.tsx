@@ -20,7 +20,7 @@ import { PaymentRow } from "@/components/PaymentRow";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
 import {
   useDonor,
-  formatIQD,
+  formatMoney,
   donorStatus,
   deleteDonor,
   useDonorPayments,
@@ -217,12 +217,12 @@ function DonorDetails() {
             <div className="surface-card p-5">
               <p className="text-sm text-muted-foreground">التبرع الشهري</p>
               <p className="mt-2 font-display text-2xl font-bold text-primary">
-                {formatIQD(donor.monthlyAmount)}
+                {formatMoney(donor.monthlyAmount, donor.currency)}
               </p>
             </div>
             <div className="surface-card p-5">
               <p className="text-sm text-muted-foreground">إجمالي ما تبرّع به</p>
-              <p className="mt-2 font-display text-2xl font-bold text-ink">{formatIQD(totalPaid)}</p>
+              <p className="mt-2 font-display text-2xl font-bold text-ink">{formatMoney(totalPaid, donor.currency)}</p>
             </div>
           </div>
 
@@ -232,6 +232,7 @@ function DonorDetails() {
               <AddPaymentForm
                 donorId={donor.id}
                 defaultAmount={donor.monthlyAmount}
+                defaultCurrency={donor.currency}
                 donorName={donor.name}
               />
             </div>

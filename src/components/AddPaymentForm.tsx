@@ -7,7 +7,10 @@ import {
   CURRENT_MONTH,
   CURRENT_YEAR,
   addPayment,
-  formatIQD,
+  formatMoney,
+  CURRENCIES,
+  CURRENCY_LABELS,
+  type Currency,
   periodLabel,
   todayISO,
   errorMessage,
@@ -18,15 +21,18 @@ export function AddPaymentForm({
   donorId,
   defaultAmount,
   donorName,
+  defaultCurrency = "IQD",
 }: {
   donorId: string;
   defaultAmount: number;
   donorName?: string;
+  defaultCurrency?: Currency;
 }) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(CURRENT_MONTH);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [amount, setAmount] = useState(defaultAmount);
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency);
   const [status, setStatus] = useState<PaymentStatus>("paid");
   const [notes, setNotes] = useState("");
 
@@ -44,7 +50,7 @@ export function AddPaymentForm({
 
   return (
     <div className="w-full space-y-3 rounded-xl bg-secondary/60 p-4">
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-5">
         <label className="text-xs font-medium text-muted-foreground">
           الشهر
           <select
@@ -76,6 +82,20 @@ export function AddPaymentForm({
             onChange={(e) => setAmount(Number(e.target.value))}
             className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink"
           />
+        </label>
+        <label className="text-xs font-medium text-muted-foreground">
+          العملة
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as Currency)}
+            className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-ink"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {CURRENCY_LABELS[c]}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="text-xs font-medium text-muted-foreground">
           الحالة
@@ -110,7 +130,8 @@ export function AddPaymentForm({
           description="هل أنت متأكد من تسجيل هذا التبرع؟"
           details={[
             ...(donorName ? [{ label: "المتبرع", value: donorName }] : []),
-            { label: "المبلغ", value: formatIQD(amount) },
+            { label: "المبلغ", value: formatMoney(amount, currency) },
+            { label: "العملة", value: CURRENCY_LABELS[currency] },
             { label: "الشهر", value: periodLabel(month, year) },
             { label: "التاريخ", value: todayISO() },
             { label: "الحالة", value: status === "paid" ? "مدفوع" : "غير مدفوع" },
@@ -123,6 +144,7 @@ export function AddPaymentForm({
                 month,
                 year,
                 amount,
+                currency,
                 status,
                 notes: notes.trim() || undefined,
               });

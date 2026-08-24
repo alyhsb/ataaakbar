@@ -137,6 +137,7 @@ export type Database = {
           access_code: string | null
           area: string
           created_at: string
+          currency: string
           deleted_at: string | null
           donor_code: string | null
           due_day: number
@@ -159,6 +160,7 @@ export type Database = {
           access_code?: string | null
           area?: string
           created_at?: string
+          currency?: string
           deleted_at?: string | null
           donor_code?: string | null
           due_day?: number
@@ -181,6 +183,7 @@ export type Database = {
           access_code?: string | null
           area?: string
           created_at?: string
+          currency?: string
           deleted_at?: string | null
           donor_code?: string | null
           due_day?: number
@@ -214,6 +217,7 @@ export type Database = {
           amount: number
           contributed_on: string
           created_at: string
+          currency: string
           donor_id: string
           goal_id: string
           id: string
@@ -223,6 +227,7 @@ export type Database = {
           amount?: number
           contributed_on?: string
           created_at?: string
+          currency?: string
           donor_id: string
           goal_id: string
           id?: string
@@ -232,6 +237,7 @@ export type Database = {
           amount?: number
           contributed_on?: string
           created_at?: string
+          currency?: string
           donor_id?: string
           goal_id?: string
           id?: string
@@ -287,6 +293,7 @@ export type Database = {
       mawkib_goals: {
         Row: {
           created_at: string
+          currency: string
           deadline: string | null
           description: string
           id: string
@@ -300,6 +307,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          currency?: string
           deadline?: string | null
           description?: string
           id?: string
@@ -313,6 +321,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          currency?: string
           deadline?: string | null
           description?: string
           id?: string
@@ -438,6 +447,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          currency: string
           donor_id: string
           id: string
           month: number
@@ -450,6 +460,7 @@ export type Database = {
         Insert: {
           amount?: number
           created_at?: string
+          currency?: string
           donor_id: string
           id?: string
           month: number
@@ -462,6 +473,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          currency?: string
           donor_id?: string
           id?: string
           month?: number

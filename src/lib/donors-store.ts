@@ -2,6 +2,18 @@ import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PaymentStatus = "paid" | "unpaid";
+export type Currency = "IQD" | "USD";
+
+export const CURRENCY_LABELS: Record<Currency, string> = {
+  IQD: "دينار عراقي",
+  USD: "دولار أمريكي",
+};
+
+export const CURRENCIES: Currency[] = ["IQD", "USD"];
+
+export function asCurrency(v: unknown): Currency {
+  return v === "USD" ? "USD" : "IQD";
+}
 export type NotificationKind = "new_month" | "payment_confirmed" | "reminder";
 
 export type AppNotification = {
@@ -20,6 +32,7 @@ export type MonthlyPayment = {
   month: number;
   year: number;
   amount: number;
+  currency: Currency;
   status: PaymentStatus;
   paidAt?: string | undefined;
   notes?: string | undefined;
@@ -67,6 +80,7 @@ export type Donor = {
   area: string;
   location: string;
   monthlyAmount: number;
+  currency: Currency;
   dueDay: number;
   joinedAt: string;
   notes?: string | undefined;
@@ -139,6 +153,7 @@ type DonorRow = {
   area: string;
   location?: string | null;
   monthly_amount: number;
+  currency?: string | null;
   due_day?: number | null;
   notes: string | null;
   joined_at: string;
@@ -154,6 +169,7 @@ type PaymentRowDb = {
   month: number;
   year: number;
   amount: number;
+  currency?: string | null;
   status: string;
   paid_at: string | null;
   notes: string | null;
@@ -185,6 +201,7 @@ const mapDonor = (r: DonorRow): Donor => ({
   area: r.area,
   location: r.location ?? "",
   monthlyAmount: r.monthly_amount,
+  currency: asCurrency(r.currency),
   dueDay: r.due_day ?? 5,
   notes: r.notes ?? undefined,
   joinedAt: r.joined_at,
@@ -201,6 +218,7 @@ const mapPayment = (r: PaymentRowDb): MonthlyPayment => ({
   month: r.month,
   year: r.year,
   amount: r.amount,
+  currency: asCurrency(r.currency),
   status: r.status === "paid" ? "paid" : "unpaid",
   paidAt: r.paid_at ?? undefined,
   notes: r.notes ?? undefined,
@@ -378,6 +396,7 @@ export async function addDonor(input: {
   area: string;
   location?: string;
   monthlyAmount: number;
+  currency?: Currency;
   dueDay?: number;
   notes?: string;
 }) {
@@ -392,6 +411,7 @@ export async function addDonor(input: {
       area: input.area,
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      currency: input.currency ?? "IQD",
       due_day: input.dueDay ?? 5,
       notes: input.notes ?? null,
     })
@@ -412,6 +432,7 @@ export async function updateDonor(
     area: string;
     location?: string;
     monthlyAmount: number;
+    currency?: Currency;
     dueDay?: number;
     notes?: string;
   },
@@ -427,6 +448,7 @@ export async function updateDonor(
       area: input.area,
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      ...(input.currency ? { currency: input.currency } : {}),
       due_day: input.dueDay ?? 5,
       notes: input.notes ?? null,
     })
@@ -435,7 +457,7 @@ export async function updateDonor(
 
   await supabase
     .from("payments")
-    .update({ amount: input.monthlyAmount })
+    .update({ amount: input.monthlyAmount, ...(input.currency ? { currency: input.currency } : {}) })
     .eq("donor_id", id)
     .eq("status", "unpaid");
 
@@ -452,7 +474,9 @@ export async function updateDonor(
         },
   );
   payments = payments.map((p) =>
-    p.donorId === id && p.status === "unpaid" ? { ...p, amount: input.monthlyAmount } : p,
+    p.donorId === id && p.status === "unpaid"
+      ? { ...p, amount: input.monthlyAmount, currency: input.currency ?? p.currency }
+      : p,
   );
   emit();
 }
@@ -543,8 +567,8 @@ export async function setPaymentStatus(paymentId: string, status: PaymentStatus)
     await pushNotification({
       donorId: target.donorId,
       kind: "payment_confirmed",
-      title: `تم استلام تبرعك بمبلغ ${formatIQD(target.amount)}`,
-      body: `تم استلام تبرعك بمبلغ ${formatIQD(target.amount)} عن ${periodLabel(target.month, target.year)}. شكراً لدعمك.`,
+      title: `تم استلام تبرعك بمبلغ ${formatMoney(target.amount, target.currency)}`,
+      body: `تم استلام تبرعك بمبلغ ${formatMoney(target.amount, target.currency)} عن ${periodLabel(target.month, target.year)}. شكراً لدعمك.`,
     });
   }
   emit();
@@ -575,6 +599,7 @@ export async function addPayment(input: {
   month: number;
   year: number;
   amount: number;
+  currency?: Currency;
   status: PaymentStatus;
   notes?: string | undefined;
 }) {
@@ -585,6 +610,7 @@ export async function addPayment(input: {
       month: input.month,
       year: input.year,
       amount: input.amount,
+      currency: input.currency ?? "IQD",
       status: input.status,
       paid_at: input.status === "paid" ? todayISO() : null,
       notes: input.notes ?? null,
@@ -598,8 +624,8 @@ export async function addPayment(input: {
     await pushNotification({
       donorId: payment.donorId,
       kind: "payment_confirmed",
-      title: `تم استلام تبرعك بمبلغ ${formatIQD(payment.amount)}`,
-      body: `تم استلام تبرعك بمبلغ ${formatIQD(payment.amount)} عن ${periodLabel(payment.month, payment.year)}. شكراً لدعمك.`,
+      title: `تم استلام تبرعك بمبلغ ${formatMoney(payment.amount, payment.currency)}`,
+      body: `تم استلام تبرعك بمبلغ ${formatMoney(payment.amount, payment.currency)} عن ${periodLabel(payment.month, payment.year)}. شكراً لدعمك.`,
     });
   }
   emit();
@@ -678,6 +704,7 @@ export async function startNewMonth() {
         month,
         year,
         amount: d.monthlyAmount,
+        currency: d.currency,
         status: "unpaid",
       })),
     )
@@ -693,7 +720,7 @@ export async function startNewMonth() {
         donor_id: d.id,
         kind: "new_month",
         title: `بدأ شهر ${monthLabel(month)} ${year}`,
-        body: `اشتراكك لهذا الشهر ${formatIQD(d.monthlyAmount)} وهو غير مسدد حالياً.`,
+        body: `اشتراكك لهذا الشهر ${formatMoney(d.monthlyAmount, d.currency)} وهو غير مسدد حالياً.`,
       })),
     )
     .select();
@@ -737,8 +764,14 @@ export function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function formatMoney(n: number, currency: Currency = "IQD") {
+  return currency === "USD"
+    ? `${n.toLocaleString("ar-IQ")} $`
+    : `${n.toLocaleString("ar-IQ")} د.ع`;
+}
+
 export function formatIQD(n: number) {
-  return `${n.toLocaleString("ar-IQ")} د.ع`;
+  return formatMoney(n, "IQD");
 }
 
 export function monthLabel(month: number) {
@@ -922,6 +955,7 @@ export async function requestJoinMawkib(input: {
   phone: string;
   mawkibId: string;
   monthlyAmount: number;
+  currency?: Currency;
   dueDay?: number;
   area?: string;
   location?: string;
@@ -940,6 +974,7 @@ export async function requestJoinMawkib(input: {
       area: input.area ?? "",
       location: input.location ?? "",
       monthly_amount: input.monthlyAmount,
+      currency: input.currency ?? "IQD",
       due_day: input.dueDay ?? 5,
     })
     .select()
@@ -966,7 +1001,7 @@ export async function decideMembership(donorId: string, approve: boolean) {
       kind: "reminder",
       title: approve ? "تمت الموافقة على طلب الانضمام" : "تم رفض طلب الانضمام",
       body: approve
-        ? `تمت الموافقة على انضمامك إلى ${mawkibName(donor.mawkibId)} بمبلغ ${formatIQD(donor.monthlyAmount)} شهرياً.`
+        ? `تمت الموافقة على انضمامك إلى ${mawkibName(donor.mawkibId)} بمبلغ ${formatMoney(donor.monthlyAmount, donor.currency)} شهرياً.`
         : `نعتذر، تم رفض طلب انضمامك إلى ${mawkibName(donor.mawkibId)}.`,
     });
   }

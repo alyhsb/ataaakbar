@@ -34,6 +34,7 @@ function AddDonorPage() {
           area: "",
           location: "",
           monthlyAmount: 50000,
+          currency: "IQD",
           dueDay: 5,
           notes: "",
         }}
@@ -47,6 +48,7 @@ function AddDonorPage() {
                 area: values.area,
                 location: values.location,
                 monthlyAmount: values.monthlyAmount,
+                currency: values.currency,
                 dueDay: values.dueDay,
                 notes: values.notes,
               },
