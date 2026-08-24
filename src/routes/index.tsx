@@ -10,8 +10,10 @@ import {
   checkAccountRecovery,
   completeAccountRecovery,
   registerDonorAccount,
+  activateDonorAccount,
   lookupDonorPhone,
 } from "@/lib/users.functions";
+
 
 
 export const Route = createFileRoute("/")({
