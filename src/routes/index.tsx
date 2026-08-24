@@ -55,6 +55,26 @@ function WelcomePage() {
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
   const [recoveryStatus, setRecoveryStatus] = useState<"idle" | "pending" | "approved">("idle");
+  const [preRegistered, setPreRegistered] = useState<{ name: string | null } | null>(null);
+
+  async function checkPhone() {
+    if (choice !== "donor" || mode !== "register") return;
+    if (phone.replace(/\D/g, "").length < 7) {
+      setPreRegistered(null);
+      return;
+    }
+    try {
+      const res = await lookupDonorPhone({ data: { phone } });
+      if (res.preRegistered) {
+        setPreRegistered({ name: res.name });
+        if (res.name && !fullName.trim()) setFullName(res.name);
+      } else {
+        setPreRegistered(null);
+      }
+    } catch {
+      setPreRegistered(null);
+    }
+  }
 
   useEffect(() => {
     if (ready && userId && role) {
