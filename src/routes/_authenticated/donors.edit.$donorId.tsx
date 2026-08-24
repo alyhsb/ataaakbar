@@ -43,6 +43,7 @@ function EditDonorPage() {
           area: donor.area,
           location: donor.location,
           monthlyAmount: donor.monthlyAmount,
+          currency: donor.currency,
           dueDay: donor.dueDay,
           notes: donor.notes ?? "",
         }}
