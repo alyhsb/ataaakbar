@@ -53,20 +53,24 @@ function WelcomePage() {
   const [phone, setPhone] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [fullName, setFullName] = useState("");
-  const [mode, setMode] = useState<"login" | "register" | "recover">("login");
+  const [mode, setMode] = useState<"login" | "register" | "activate" | "recover">("login");
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
   const [recoveryStatus, setRecoveryStatus] = useState<"idle" | "pending" | "approved">("idle");
   const [preRegistered, setPreRegistered] = useState<{ name: string | null } | null>(null);
+  const [activationCode, setActivationCode] = useState("");
+  const [needsActivation, setNeedsActivation] = useState(false);
 
   async function checkPhone() {
-    if (choice !== "donor" || mode !== "register") return;
+    if (choice !== "donor" || (mode !== "register" && mode !== "login")) return;
     if (phone.replace(/\D/g, "").length < 7) {
       setPreRegistered(null);
+      setNeedsActivation(false);
       return;
     }
     try {
       const res = await lookupDonorPhone({ data: { phone } });
+      setNeedsActivation(res.needsActivation);
       if (res.preRegistered) {
         setPreRegistered({ name: res.name });
         if (res.name && !fullName.trim()) setFullName(res.name);
@@ -75,8 +79,10 @@ function WelcomePage() {
       }
     } catch {
       setPreRegistered(null);
+      setNeedsActivation(false);
     }
   }
+
 
   useEffect(() => {
     if (ready && userId && role) {
