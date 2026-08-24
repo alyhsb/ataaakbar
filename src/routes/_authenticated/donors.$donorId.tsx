@@ -60,8 +60,11 @@ function DonorDetails() {
   const payments = useDonorPayments(donorId);
   const navigate = useNavigate();
   const updateAccount = useServerFn(updateDonorCredentials);
+  const makeActivationCode = useServerFn(generateDonorActivationCode);
   const [newPhone, setNewPhone] = useState("");
+  const [activation, setActivation] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
 
   if (!donor) {
     return (
