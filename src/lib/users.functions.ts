@@ -279,6 +279,16 @@ async function findAuthUserByPhone(phone: string) {
   return (users?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email) ?? null;
 }
 
+async function accountState(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("status")
+    .eq("id", userId)
+    .maybeSingle();
+  return (data?.status as string | undefined) ?? "active";
+}
+
 /** Public: tells the sign-up form whether this phone is already a donor record / account. */
 export const lookupDonorPhone = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ phone: phoneSchema }).parse(input))
@@ -290,15 +300,77 @@ export const lookupDonorPhone = createServerFn({ method: "POST" })
       .select("name, user_id")
       .eq("phone", data.phone)
       .is("deleted_at", null)
-      .is("user_id", null)
       .order("created_at")
       .limit(1)
       .maybeSingle();
+    const status = user ? await accountState(user.id) : null;
     return {
       hasAccount: Boolean(user),
+      needsActivation: status === "pending",
       preRegistered: Boolean(donor) && !user,
       name: (donor?.name as string | undefined) ?? null,
     };
+  });
+
+async function hashActivationCode(code: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code.toUpperCase()));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Public: one-time activation for an account pre-created by a mawkib owner.
+ * The donor proves ownership with the code the owner handed them, then sets their
+ * own private access code. The code is consumed and can never be reused.
+ */
+export const activateDonorAccount = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        phone: phoneSchema,
+        activationCode: z.string().trim().min(4).max(32),
+        accessCode: z.string().min(6).max(72),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const user = await findAuthUserByPhone(data.phone);
+    if (!user) throw new Error("لا يوجد حساب مُنشأ لهذا الرقم. أنشئ حساباً جديداً.");
+
+    const status = await accountState(user.id);
+    if (status !== "pending")
+      throw new Error("هذا الحساب مُفعّل بالفعل — سجّل الدخول برمزك الخاص.");
+
+    const { data: row } = await supabaseAdmin
+      .from("donor_activation_codes")
+      .select("id, code_hash, expires_at")
+      .eq("user_id", user.id)
+      .is("used_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!row) throw new Error("لا يوجد رمز تفعيل صالح. اطلب رمزاً جديداً من إدارة الموكب.");
+    if (new Date(row.expires_at as string).getTime() < Date.now())
+      throw new Error("انتهت صلاحية رمز التفعيل. اطلب رمزاً جديداً من إدارة الموكب.");
+    if ((await hashActivationCode(data.activationCode)) !== (row.code_hash as string))
+      throw new Error("رمز التفعيل غير صحيح.");
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      password: data.accessCode,
+    });
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("donor_activation_codes")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", row.id as string);
+    await supabaseAdmin.from("profiles").update({ status: "active" }).eq("id", user.id);
+    await supabaseAdmin
+      .from("donors")
+      .update({ profile_completed: true })
+      .eq("user_id", user.id);
+
+    return { ok: true };
   });
 
 /**
@@ -319,7 +391,15 @@ export const registerDonorAccount = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const existingUser = await findAuthUserByPhone(data.phone);
-    if (existingUser) throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
+    if (existingUser) {
+      const status = await accountState(existingUser.id);
+      if (status === "pending")
+        throw new Error(
+          "يوجد حساب مُنشأ لهذا الرقم من قبل إدارة الموكب وغير مُفعّل. اطلب رمز التفعيل من إدارة الموكب لتفعيله.",
+        );
+      throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
+    }
+
 
     // Donor records created earlier by a mawkib owner / admin for this phone.
     const { data: preRegistered } = await supabaseAdmin
