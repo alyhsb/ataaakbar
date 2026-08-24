@@ -7,15 +7,15 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { MawkibPublicContent } from "@/components/MawkibContentSections";
 import { useAuth } from "@/lib/auth";
 import { useMawkibContent } from "@/lib/mawkib-content";
+import type { Currency } from "@/lib/donors-store";
 import {
   useDonor,
   useDonorPayments,
   useAmountRequests,
   useAmountHistory,
   requestAmountChange,
-  sortPayments,
   periodLabel,
-  formatIQD,
+  formatMoney,
   donorStatus,
   nextDueDate,
   overdueDays,
@@ -66,10 +66,42 @@ function MembershipPage() {
 
   const pendingReq = requests.find((r) => r.status === "pending");
   const over = overdueDays(donor);
-  const paidTotal = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
-  const goalTotal = content.contributions
-    .filter((c) => c.donorId === donor.id)
-    .reduce((s, c) => s + c.amount, 0);
+  const myContributions = content.contributions.filter((c) => c.donorId === donor.id);
+  const sumBy = (cur: Currency) => ({
+    paid: payments
+      .filter((p) => p.status === "paid" && p.currency === cur)
+      .reduce((s, p) => s + p.amount, 0),
+    goals: myContributions.filter((c) => c.currency === cur).reduce((s, c) => s + c.amount, 0),
+  });
+  const totals = (["IQD", "USD"] as Currency[])
+    .map((cur) => ({ cur, ...sumBy(cur) }))
+    .filter((t) => t.paid > 0 || t.goals > 0);
+
+  /** Monthly payments + other contributions, merged into one history list. */
+  const historyRows = [
+    ...payments.map((p) => ({
+      key: `p-${p.id}`,
+      title: periodLabel(p.month, p.year),
+      subtitle:
+        p.status === "paid" ? `تاريخ الدفع: ${p.paidAt ?? "—"}` : "لم يتم التسديد بعد",
+      amount: p.amount,
+      currency: p.currency,
+      status: p.status as "paid" | "unpaid",
+      date: p.paidAt ?? `${p.year}-${String(p.month).padStart(2, "0")}-01`,
+    })),
+    ...myContributions.map((c) => {
+      const goal = content.goals.find((g) => g.id === c.goalId);
+      return {
+        key: `c-${c.id}`,
+        title: goal?.title ?? "مساهمة إضافية",
+        subtitle: `مساهمة أخرى • ${c.contributedOn}`,
+        amount: c.amount,
+        currency: c.currency,
+        status: "paid" as const,
+        date: c.contributedOn,
+      };
+    }),
+  ].sort((a, b) => (a.date < b.date ? 1 : -1));
 
 
   async function submit(e: React.FormEvent) {
@@ -97,7 +129,7 @@ function MembershipPage() {
         <div className="surface-card p-5">
           <p className="text-sm text-muted-foreground">التبرع الشهري</p>
           <p className="font-display text-2xl font-bold text-primary">
-            {formatIQD(donor.monthlyAmount)}
+            {formatMoney(donor.monthlyAmount, donor.currency)}
           </p>
         </div>
         <div className="surface-card p-5">
@@ -121,22 +153,32 @@ function MembershipPage() {
         <p className="mt-1 text-xs text-muted-foreground">
           منذ انضمامك إلى {mawkibName(donor.mawkibId)} — لا تُحتسب ضمنه تبرعاتك لمواكب أخرى.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg bg-secondary px-4 py-3">
-            <p className="text-xs text-muted-foreground">التبرعات الشهرية المدفوعة</p>
-            <p className="font-display text-xl font-bold text-primary">{formatIQD(paidTotal)}</p>
-          </div>
-          <div className="rounded-lg bg-secondary px-4 py-3">
-            <p className="text-xs text-muted-foreground">مساهمات الأهداف المستقبلية</p>
-            <p className="font-display text-xl font-bold text-gold">{formatIQD(goalTotal)}</p>
-          </div>
-          <div className="gradient-emerald rounded-lg px-4 py-3">
-            <p className="text-xs text-primary-foreground/80">إجمالي مساهماتي في هذا الموكب</p>
-            <p className="font-display text-xl font-bold text-primary-foreground">
-              {formatIQD(paidTotal + goalTotal)}
-            </p>
-          </div>
-        </div>
+        {totals.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">لا توجد مساهمات مسجّلة بعد.</p>
+        ) : (
+          totals.map((t) => (
+            <div key={t.cur} className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-secondary px-4 py-3">
+                <p className="text-xs text-muted-foreground">التبرعات الشهرية المدفوعة</p>
+                <p className="font-display text-xl font-bold text-primary">
+                  {formatMoney(t.paid, t.cur)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-secondary px-4 py-3">
+                <p className="text-xs text-muted-foreground">مساهمات أخرى</p>
+                <p className="font-display text-xl font-bold text-gold">
+                  {formatMoney(t.goals, t.cur)}
+                </p>
+              </div>
+              <div className="gradient-emerald rounded-lg px-4 py-3">
+                <p className="text-xs text-primary-foreground/80">إجمالي مساهماتي في هذا الموكب</p>
+                <p className="font-display text-xl font-bold text-primary-foreground">
+                  {formatMoney(t.paid + t.goals, t.cur)}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
       </section>
 
       </div>
@@ -145,7 +187,7 @@ function MembershipPage() {
         <h2 className="font-display text-lg font-bold text-ink">طلب تعديل مبلغ التبرع</h2>
         {pendingReq ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            لديك طلب قيد الانتظار لتغيير المبلغ إلى {formatIQD(pendingReq.requestedAmount)}.
+            لديك طلب قيد الانتظار لتغيير المبلغ إلى {formatMoney(pendingReq.requestedAmount, donor.currency)}.
           </p>
         ) : (
           <form className="mt-3 flex flex-wrap items-end gap-3" onSubmit={submit}>
@@ -181,7 +223,7 @@ function MembershipPage() {
             <ul className="space-y-1.5 text-xs text-muted-foreground">
               {history.map((h) => (
                 <li key={h.id}>
-                  {formatIQD(h.oldAmount)} ← {formatIQD(h.newAmount)} •{" "}
+                  {formatMoney(h.oldAmount, donor.currency)} ← {formatMoney(h.newAmount, donor.currency)} •{" "}
                   {new Date(h.createdAt).toLocaleDateString("ar-IQ")}
                 </li>
               ))}
@@ -191,24 +233,24 @@ function MembershipPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-3 font-display text-lg font-bold text-ink">سجل الدفعات</h2>
-        {payments.length === 0 ? (
+        <h2 className="mb-3 font-display text-lg font-bold text-ink">سجل الدفعات والمساهمات</h2>
+        {historyRows.length === 0 ? (
           <div className="surface-card p-8 text-center text-sm text-muted-foreground">
             لا توجد دفعات مسجّلة بعد.
           </div>
         ) : (
           <ul className="surface-card divide-y divide-border">
-            {sortPayments(payments).map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+            {historyRows.map((row) => (
+              <li key={row.key} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
                 <div>
-                  <p className="text-sm font-semibold text-ink">{periodLabel(p.month, p.year)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.status === "paid" ? `تاريخ الدفع: ${p.paidAt ?? "—"}` : "لم يتم التسديد بعد"}
-                  </p>
+                  <p className="text-sm font-semibold text-ink">{row.title}</p>
+                  <p className="text-xs text-muted-foreground">{row.subtitle}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-primary">{formatIQD(p.amount)}</span>
-                  <StatusPill status={p.status} />
+                  <span className="text-sm font-medium text-primary">
+                    {formatMoney(row.amount, row.currency)}
+                  </span>
+                  <StatusPill status={row.status} />
                 </div>
               </li>
             ))}
