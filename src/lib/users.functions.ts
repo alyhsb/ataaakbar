@@ -103,7 +103,13 @@ export const listAppUsers = createServerFn({ method: "POST" })
           (u.email ?? "").split("@")[0] ??
           "",
         role: role as AppUser["role"],
-        status: banned || profile?.status === "inactive" ? "inactive" : "active",
+        status:
+          banned || profile?.status === "inactive"
+            ? "inactive"
+            : profile?.status === "pending"
+              ? "pending"
+              : "active",
+
         createdAt: u.created_at,
         lastLoginAt:
           (profile?.last_login_at as string | null) ?? (u.last_sign_in_at as string | null) ?? null,
