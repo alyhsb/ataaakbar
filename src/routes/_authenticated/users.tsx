@@ -149,7 +149,12 @@ function UsersPage() {
                     <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
                       معطّل
                     </span>
+                  ) : u.status === "pending" ? (
+                    <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-gold">
+                      غير مُفعّل
+                    </span>
                   ) : null}
+
                 </p>
                 <p className="text-xs text-muted-foreground" dir="ltr">
                   {u.phone}
