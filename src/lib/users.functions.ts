@@ -39,11 +39,12 @@ export type AppUser = {
   name: string;
   phone: string;
   role: "admin" | "owner" | "donor";
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "pending";
   createdAt: string;
   lastLoginAt: string | null;
   mawakibCount: number;
 };
+
 
 /** Main admin only: every application account (donors + mawkib owners). */
 export const listAppUsers = createServerFn({ method: "POST" })
