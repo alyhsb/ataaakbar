@@ -260,3 +260,137 @@ export const listRecoveryRequests = createServerFn({ method: "POST" })
       created_at: string;
     }[];
   });
+
+/* ------------------------------------------------------------------ */
+/* Pre-registered donor records (added by an owner, no app account yet) */
+/* ------------------------------------------------------------------ */
+
+async function findAuthUserByPhone(phone: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const email = loginEmail(phone);
+  const { data: users } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  return (users?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email) ?? null;
+}
+
+/** Public: tells the sign-up form whether this phone is already a donor record / account. */
+export const lookupDonorPhone = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ phone: phoneSchema }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const user = await findAuthUserByPhone(data.phone);
+    const { data: donor } = await supabaseAdmin
+      .from("donors")
+      .select("name, user_id")
+      .eq("phone", data.phone)
+      .is("deleted_at", null)
+      .is("user_id", null)
+      .order("created_at")
+      .limit(1)
+      .maybeSingle();
+    return {
+      hasAccount: Boolean(user),
+      preRegistered: Boolean(donor) && !user,
+      name: (donor?.name as string | undefined) ?? null,
+    };
+  });
+
+/**
+ * Public donor sign-up. Links the new application account to any pre-registered
+ * donor record with the same phone instead of creating a duplicate donor.
+ */
+export const registerDonorAccount = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        phone: phoneSchema,
+        accessCode: z.string().min(6).max(72),
+        name: z.string().trim().min(3).max(100).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const existingUser = await findAuthUserByPhone(data.phone);
+    if (existingUser) throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
+
+    // Donor records created earlier by a mawkib owner / admin for this phone.
+    const { data: preRegistered } = await supabaseAdmin
+      .from("donors")
+      .select("id, name")
+      .eq("phone", data.phone)
+      .is("deleted_at", null)
+      .is("user_id", null)
+      .order("created_at");
+
+    const linked = preRegistered ?? [];
+    const name = data.name?.trim() || (linked[0]?.name as string | undefined);
+    if (!name) throw new Error("الرجاء إدخال الاسم الكامل");
+
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: loginEmail(data.phone),
+      password: data.accessCode,
+      email_confirm: true,
+      user_metadata: { full_name: name, phone: data.phone, account_type: "donor" },
+    });
+    if (error || !created?.user) {
+      if (error && /registered|exists/i.test(error.message))
+        throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
+      throw new Error(error?.message ?? "تعذّر إنشاء الحساب");
+    }
+
+    if (linked.length > 0) {
+      await supabaseAdmin
+        .from("donors")
+        .update({ user_id: created.user.id, profile_completed: true })
+        .in(
+          "id",
+          linked.map((d) => d.id as string),
+        )
+        .is("user_id", null);
+    }
+
+    return { ok: true, linkedMemberships: linked.length };
+  });
+
+/**
+ * Main admin only: deletes the application account.
+ * Financial history stays: donor membership rows are kept (archived) and only
+ * detached from the deleted account, so the phone number becomes reusable and
+ * the old data is never merged automatically into a future account.
+ */
+export const deleteAppUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await requireAdmin(context);
+    if (data.userId === context.userId) throw new Error("لا يمكنك حذف حسابك الخاص");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: isAdminTarget } = await supabaseAdmin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (isAdminTarget) throw new Error("لا يمكن حذف حساب إدارة التطبيق");
+
+    const nowIso = new Date().toISOString();
+    // Keep payments/goal contributions intact; archive the memberships and
+    // detach them from the account being deleted.
+    await supabaseAdmin
+      .from("donors")
+      .update({ user_id: null, deleted_at: nowIso })
+      .eq("user_id", data.userId)
+      .is("deleted_at", null);
+    await supabaseAdmin.from("donors").update({ user_id: null }).eq("user_id", data.userId);
+    await supabaseAdmin
+      .from("account_recovery_requests")
+      .delete()
+      .eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

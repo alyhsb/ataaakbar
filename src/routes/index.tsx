@@ -9,6 +9,8 @@ import {
   requestAccountRecovery,
   checkAccountRecovery,
   completeAccountRecovery,
+  registerDonorAccount,
+  lookupDonorPhone,
 } from "@/lib/users.functions";
 
 
@@ -53,6 +55,26 @@ function WelcomePage() {
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
   const [recoveryStatus, setRecoveryStatus] = useState<"idle" | "pending" | "approved">("idle");
+  const [preRegistered, setPreRegistered] = useState<{ name: string | null } | null>(null);
+
+  async function checkPhone() {
+    if (choice !== "donor" || mode !== "register") return;
+    if (phone.replace(/\D/g, "").length < 7) {
+      setPreRegistered(null);
+      return;
+    }
+    try {
+      const res = await lookupDonorPhone({ data: { phone } });
+      if (res.preRegistered) {
+        setPreRegistered({ name: res.name });
+        if (res.name && !fullName.trim()) setFullName(res.name);
+      } else {
+        setPreRegistered(null);
+      }
+    } catch {
+      setPreRegistered(null);
+    }
+  }
 
   useEffect(() => {
     if (ready && userId && role) {
@@ -109,21 +131,27 @@ function WelcomePage() {
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
-        const { error } = await supabase.auth.signUp({
+        let linkedMemberships = 0;
+        try {
+          const res = await registerDonorAccount({
+            data: { phone, accessCode, name: fullName.trim() },
+          });
+          linkedMemberships = res.linkedMemberships;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "تعذّر إنشاء الحساب";
+          if (/موجود مسبقاً/.test(message)) setDuplicate(true);
+          throw new Error(message);
+        }
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: toLoginEmail(phone),
           password: accessCode,
-          options: {
-            data: { full_name: fullName.trim(), phone, account_type: "donor" },
-          },
         });
-        if (error) {
-          if (/registered|exists/i.test(error.message)) {
-            setDuplicate(true);
-            throw new Error("هذا الرقم مرتبط بحساب موجود مسبقاً.");
-          }
-          throw new Error("تعذّر إنشاء الحساب");
-        }
-        toast.success("تم إنشاء حسابك، اختر موكباً للانضمام إليه");
+        if (signInError) throw new Error("تم إنشاء الحساب، سجّل الدخول برقمك ورمزك");
+        toast.success(
+          linkedMemberships > 0
+            ? "تم تنشيط حسابك وربطه بسجلك السابق في الموكب"
+            : "تم إنشاء حسابك، اختر موكباً للانضمام إليه",
+        );
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({
@@ -297,6 +325,14 @@ function WelcomePage() {
                   />
                 </label>
               ) : null}
+              {preRegistered && choice === "donor" && mode === "register" ? (
+                <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-xs leading-relaxed text-ink">
+                  رقمك مسجّل مسبقاً كمتبرع من قبل إدارة الموكب
+                  {preRegistered.name ? ` باسم «${preRegistered.name}»` : ""}. ضع رمز دخول خاص بك
+                  الآن وسيتم ربط حسابك بسجلك الحالي (الموكب، مبلغ التبرع، وسجل الدفعات) دون إنشاء
+                  سجل مكرّر.
+                </div>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">رقم الهاتف</span>
                 <input
@@ -304,6 +340,7 @@ function WelcomePage() {
                   inputMode="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  onBlur={() => void checkPhone()}
                   placeholder="07XX XXX XXXX"
                   className={inputCls}
                 />

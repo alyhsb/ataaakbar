@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Search, ShieldCheck, Heart, Ban, RotateCcw } from "lucide-react";
+import { Loader2, Search, ShieldCheck, Heart, Ban, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAuth } from "@/lib/auth";
-import { listAppUsers, setAccountStatus, type AppUser } from "@/lib/users.functions";
+import {
+  listAppUsers,
+  setAccountStatus,
+  deleteAppUser,
+  type AppUser,
+} from "@/lib/users.functions";
 import { errorMessage } from "@/lib/donors-store";
 
 export const Route = createFileRoute("/_authenticated/users")({
@@ -43,6 +48,7 @@ function UsersPage() {
   const { role } = useAuth();
   const fetchUsers = useServerFn(listAppUsers);
   const changeStatus = useServerFn(setAccountStatus);
+  const removeUser = useServerFn(deleteAppUser);
   const [users, setUsers] = useState<AppUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -158,42 +164,67 @@ function UsersPage() {
                 </p>
               </div>
               {u.role === "admin" ? null : (
-                <ConfirmDialog
-                  title={u.status === "active" ? "تعطيل الحساب" : "إعادة تفعيل الحساب"}
-                  description={
-                    u.status === "active"
-                      ? `سيتم منع ${u.name} من تسجيل الدخول، مع بقاء بياناته وعضوياته كما هي.`
-                      : `سيتمكّن ${u.name} من تسجيل الدخول مجدداً.`
-                  }
-                  confirmLabel="تأكيد"
-                  onConfirm={async () => {
-                    try {
-                      await changeStatus({
-                        data: { userId: u.id, active: u.status !== "active" },
-                      });
-                      toast.success("تم تحديث حالة الحساب");
-                      await reload();
-                    } catch (err) {
-                      toast.error(errorMessage(err, "تعذّر تحديث الحساب"));
+                <div className="flex items-center gap-2">
+                  <ConfirmDialog
+                    title={u.status === "active" ? "تعطيل الحساب" : "إعادة تفعيل الحساب"}
+                    description={
+                      u.status === "active"
+                        ? `سيتم منع ${u.name} من تسجيل الدخول، مع بقاء بياناته وعضوياته كما هي.`
+                        : `سيتمكّن ${u.name} من تسجيل الدخول مجدداً.`
                     }
-                  }}
-                  trigger={(open) => (
-                    <button
-                      onClick={open}
-                      className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-ink"
-                    >
-                      {u.status === "active" ? (
-                        <>
-                          <Ban className="h-3.5 w-3.5" /> تعطيل
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="h-3.5 w-3.5" /> تفعيل
-                        </>
-                      )}
-                    </button>
-                  )}
-                />
+                    confirmLabel="تأكيد"
+                    onConfirm={async () => {
+                      try {
+                        await changeStatus({
+                          data: { userId: u.id, active: u.status !== "active" },
+                        });
+                        toast.success("تم تحديث حالة الحساب");
+                        await reload();
+                      } catch (err) {
+                        toast.error(errorMessage(err, "تعذّر تحديث الحساب"));
+                      }
+                    }}
+                    trigger={(open) => (
+                      <button
+                        onClick={open}
+                        className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-ink"
+                      >
+                        {u.status === "active" ? (
+                          <>
+                            <Ban className="h-3.5 w-3.5" /> تعطيل
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="h-3.5 w-3.5" /> تفعيل
+                          </>
+                        )}
+                      </button>
+                    )}
+                  />
+                  <ConfirmDialog
+                    title="حذف المستخدم"
+                    description={`سيتم حذف حساب «${u.name}» من التطبيق ولن يستطيع تسجيل الدخول، ويصبح رقم هاتفه متاحاً لإنشاء حساب جديد. تبقى سجلات التبرعات والدفعات محفوظة في الموكب ولن تُدمج تلقائياً مع أي حساب جديد.`}
+                    confirmLabel="نعم، احذف الحساب"
+                    destructive
+                    onConfirm={async () => {
+                      try {
+                        await removeUser({ data: { userId: u.id } });
+                        toast.success("تم حذف حساب المستخدم");
+                        await reload();
+                      } catch (err) {
+                        toast.error(errorMessage(err, "تعذّر حذف المستخدم"));
+                      }
+                    }}
+                    trigger={(open) => (
+                      <button
+                        onClick={open}
+                        className="flex items-center gap-1.5 rounded-lg border border-destructive/40 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> حذف المستخدم
+                      </button>
+                    )}
+                  />
+                </div>
               )}
             </li>
           ))}
