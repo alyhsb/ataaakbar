@@ -386,6 +386,25 @@ function WelcomePage() {
                   سجل مكرّر.
                 </div>
               ) : null}
+              {choice === "donor" && mode === "activate" ? (
+                <p className="rounded-lg bg-secondary p-3 text-xs leading-relaxed text-muted-foreground">
+                  إذا أضافك الموكب إلى قائمة متبرعيه فحسابك جاهز لكن «غير مُفعّل». اطلب من إدارة
+                  الموكب «رمز تفعيل لمرة واحدة»، ثم أدخله هنا مع رمز دخول خاص بك — يصبح رمز التفعيل
+                  غير صالح بعد ذلك نهائياً.
+                </p>
+              ) : null}
+              {choice === "donor" && mode === "login" && needsActivation ? (
+                <div className="space-y-2 rounded-lg border border-gold/40 bg-gold/10 p-3 text-xs leading-relaxed text-ink">
+                  حسابك مُنشأ من قبل إدارة الموكب وغير مُفعّل بعد.
+                  <button
+                    type="button"
+                    onClick={() => setMode("activate")}
+                    className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                  >
+                    تفعيل الحساب برمز التفعيل
+                  </button>
+                </div>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">رقم الهاتف</span>
                 <input
@@ -398,10 +417,25 @@ function WelcomePage() {
                   className={inputCls}
                 />
               </label>
+              {choice === "donor" && mode === "activate" ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-ink">
+                    رمز التفعيل لمرة واحدة
+                  </span>
+                  <input
+                    required
+                    value={activationCode}
+                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                    placeholder="مثال: A7K2M9QP"
+                    dir="ltr"
+                    className={`${inputCls} tracking-widest`}
+                  />
+                </label>
+              ) : null}
               {mode !== "recover" || recoveryStatus === "approved" ? (
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-ink">
-                    {mode === "recover" ? "رمز الدخول الجديد" : "رمز الدخول"}
+                    {mode === "recover" || mode === "activate" ? "رمز الدخول الجديد" : "رمز الدخول"}
                   </span>
                   <input
                     required
@@ -427,8 +461,11 @@ function WelcomePage() {
                       : "إرسال طلب الاستعادة"
                   : choice === "donor" && mode === "register"
                     ? "إنشاء الحساب"
-                    : "تسجيل الدخول"}
+                    : choice === "donor" && mode === "activate"
+                      ? "تفعيل الحساب"
+                      : "تسجيل الدخول"}
               </button>
+
               {mode === "recover" ? (
                 <button
                   type="button"
