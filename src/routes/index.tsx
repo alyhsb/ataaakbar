@@ -325,6 +325,14 @@ function WelcomePage() {
                   />
                 </label>
               ) : null}
+              {preRegistered && choice === "donor" && mode === "register" ? (
+                <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-xs leading-relaxed text-ink">
+                  رقمك مسجّل مسبقاً كمتبرع من قبل إدارة الموكب
+                  {preRegistered.name ? ` باسم «${preRegistered.name}»` : ""}. ضع رمز دخول خاص بك
+                  الآن وسيتم ربط حسابك بسجلك الحالي (الموكب، مبلغ التبرع، وسجل الدفعات) دون إنشاء
+                  سجل مكرّر.
+                </div>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">رقم الهاتف</span>
                 <input
@@ -332,6 +340,7 @@ function WelcomePage() {
                   inputMode="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  onBlur={() => void checkPhone()}
                   placeholder="07XX XXX XXXX"
                   className={inputCls}
                 />
