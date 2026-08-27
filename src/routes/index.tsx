@@ -216,7 +216,9 @@ function WelcomePage() {
 
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
+        if (!phoneVerified) throw new Error("أكّد رقم هاتفك برمز واتساب أولاً");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
+
         let linkedMemberships = 0;
         try {
           const res = await registerDonorAccount({
