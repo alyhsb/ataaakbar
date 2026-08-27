@@ -397,6 +397,25 @@ export const registerDonorAccount = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // WhatsApp phone verification (skipped only when the service is not configured).
+    const verificationRequired = Boolean(process.env["WASENDER_API_KEY"]);
+    let verificationId: string | null = null;
+    if (verificationRequired) {
+      const { data: verification } = await supabaseAdmin
+        .from("phone_verifications")
+        .select("id, verified_at")
+        .eq("phone", digits(data.phone))
+        .is("consumed_at", null)
+        .not("verified_at", "is", null)
+        .gte("verified_at", new Date(Date.now() - 15 * 60_000).toISOString())
+        .order("verified_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!verification) throw new Error("الرجاء تأكيد رقم هاتفك برمز واتساب أولاً");
+      verificationId = verification.id as string;
+    }
+
+
     const existingUser = await findAuthUserByPhone(data.phone);
     if (existingUser) {
       const status = await accountState(existingUser.id);
