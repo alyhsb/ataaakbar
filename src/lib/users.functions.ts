@@ -463,7 +463,15 @@ export const registerDonorAccount = createServerFn({ method: "POST" })
         .is("user_id", null);
     }
 
+    if (verificationId) {
+      await supabaseAdmin
+        .from("phone_verifications")
+        .update({ consumed_at: new Date().toISOString() })
+        .eq("id", verificationId);
+    }
+
     return { ok: true, linkedMemberships: linked.length };
+
   });
 
 /**
