@@ -471,12 +471,65 @@ function WelcomePage() {
                   required
                   inputMode="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    resetVerification();
+                  }}
                   onBlur={() => void checkPhone()}
                   placeholder="07XX XXX XXXX"
                   className={inputCls}
                 />
               </label>
+
+              {choice === "donor" && mode === "register" ? (
+                <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  {phoneVerified ? (
+                    <p className="text-xs font-semibold text-primary">
+                      ✓ تم تأكيد رقم هاتفك عبر واتساب
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        سنرسل رمز تحقق من ٦ أرقام إلى واتساب الخاص برقمك لتأكيد ملكيته.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void sendOtp()}
+                        disabled={otpBusy || cooldown > 0}
+                        className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                      >
+                        {cooldown > 0
+                          ? `إعادة الإرسال بعد ${cooldown} ثانية`
+                          : otpSent
+                            ? "إعادة إرسال الرمز"
+                            : "إرسال رمز التحقق عبر واتساب"}
+                      </button>
+                      {otpSent ? (
+                        <div className="flex gap-2">
+                          <input
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="######"
+                            dir="ltr"
+                            className={`${inputCls} text-center tracking-[0.4em]`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void confirmOtp()}
+                            disabled={otpBusy || otpCode.length < 4}
+                            className="shrink-0 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:opacity-60"
+                          >
+                            تأكيد
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              ) : null}
+
               {choice === "donor" && mode === "activate" ? (
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-ink">
