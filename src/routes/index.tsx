@@ -65,6 +65,59 @@ function WelcomePage() {
   const [preRegistered, setPreRegistered] = useState<{ name: string | null } | null>(null);
   const [activationCode, setActivationCode] = useState("");
   const [needsActivation, setNeedsActivation] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  function resetVerification() {
+    setOtpSent(false);
+    setOtpCode("");
+    setPhoneVerified(false);
+  }
+
+  async function sendOtp() {
+    if (otpBusy || cooldown > 0) return;
+    if (phone.replace(/\D/g, "").length < 7) {
+      toast.error("أدخل رقم هاتف صحيح أولاً");
+      return;
+    }
+    setOtpBusy(true);
+    try {
+      const res = await sendPhoneVerificationCode({ data: { phone } });
+      setOtpSent(true);
+      setPhoneVerified(false);
+      setCooldown(res.resendAfterSeconds);
+      toast.success("تم إرسال رمز التحقق إلى واتساب الخاص برقمك");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر إرسال رمز التحقق");
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
+  async function confirmOtp() {
+    if (otpBusy) return;
+    setOtpBusy(true);
+    try {
+      await verifyPhoneCode({ data: { phone, code: otpCode.trim() } });
+      setPhoneVerified(true);
+      toast.success("تم تأكيد رقم هاتفك");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
+
 
   async function checkPhone() {
     if (choice !== "donor" || (mode !== "register" && mode !== "login")) return;
