@@ -13,6 +13,11 @@ import {
   activateDonorAccount,
   lookupDonorPhone,
 } from "@/lib/users.functions";
+import {
+  sendPhoneVerificationCode,
+  verifyPhoneCode,
+} from "@/lib/whatsapp-verify.functions";
+
 
 
 
@@ -60,6 +65,59 @@ function WelcomePage() {
   const [preRegistered, setPreRegistered] = useState<{ name: string | null } | null>(null);
   const [activationCode, setActivationCode] = useState("");
   const [needsActivation, setNeedsActivation] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  function resetVerification() {
+    setOtpSent(false);
+    setOtpCode("");
+    setPhoneVerified(false);
+  }
+
+  async function sendOtp() {
+    if (otpBusy || cooldown > 0) return;
+    if (phone.replace(/\D/g, "").length < 7) {
+      toast.error("أدخل رقم هاتف صحيح أولاً");
+      return;
+    }
+    setOtpBusy(true);
+    try {
+      const res = await sendPhoneVerificationCode({ data: { phone } });
+      setOtpSent(true);
+      setPhoneVerified(false);
+      setCooldown(res.resendAfterSeconds);
+      toast.success("تم إرسال رمز التحقق إلى واتساب الخاص برقمك");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر إرسال رمز التحقق");
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
+  async function confirmOtp() {
+    if (otpBusy) return;
+    setOtpBusy(true);
+    try {
+      await verifyPhoneCode({ data: { phone, code: otpCode.trim() } });
+      setPhoneVerified(true);
+      toast.success("تم تأكيد رقم هاتفك");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "رمز التحقق غير صحيح");
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
+
 
   async function checkPhone() {
     if (choice !== "donor" || (mode !== "register" && mode !== "login")) return;
@@ -158,7 +216,9 @@ function WelcomePage() {
 
       if (choice === "donor" && mode === "register") {
         if (fullName.trim().length < 3) throw new Error("الرجاء إدخال الاسم الكامل");
+        if (!phoneVerified) throw new Error("أكّد رقم هاتفك برمز واتساب أولاً");
         if (accessCode.length < 6) throw new Error("رمز الدخول يجب ألا يقل عن 6 خانات");
+
         let linkedMemberships = 0;
         try {
           const res = await registerDonorAccount({
@@ -411,12 +471,65 @@ function WelcomePage() {
                   required
                   inputMode="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    resetVerification();
+                  }}
                   onBlur={() => void checkPhone()}
                   placeholder="07XX XXX XXXX"
                   className={inputCls}
                 />
               </label>
+
+              {choice === "donor" && mode === "register" ? (
+                <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  {phoneVerified ? (
+                    <p className="text-xs font-semibold text-primary">
+                      ✓ تم تأكيد رقم هاتفك عبر واتساب
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        سنرسل رمز تحقق من ٦ أرقام إلى واتساب الخاص برقمك لتأكيد ملكيته.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void sendOtp()}
+                        disabled={otpBusy || cooldown > 0}
+                        className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                      >
+                        {cooldown > 0
+                          ? `إعادة الإرسال بعد ${cooldown} ثانية`
+                          : otpSent
+                            ? "إعادة إرسال الرمز"
+                            : "إرسال رمز التحقق عبر واتساب"}
+                      </button>
+                      {otpSent ? (
+                        <div className="flex gap-2">
+                          <input
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="######"
+                            dir="ltr"
+                            className={`${inputCls} text-center tracking-[0.4em]`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void confirmOtp()}
+                            disabled={otpBusy || otpCode.length < 4}
+                            className="shrink-0 rounded-lg border border-primary/40 px-3 text-xs font-semibold text-primary disabled:opacity-60"
+                          >
+                            تأكيد
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              ) : null}
+
               {choice === "donor" && mode === "activate" ? (
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium text-ink">
