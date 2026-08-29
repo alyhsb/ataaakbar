@@ -284,7 +284,7 @@ function WelcomePage() {
           <span className="gradient-gold flex h-16 w-16 items-center justify-center rounded-2xl font-display text-3xl font-bold text-gold-foreground">
             ع
           </span>
-          <h1 className="mt-4 font-display text-3xl font-bold text-ink">{APP_NAME}</h1>
+          <h1 className="mt-4 font-display text-3xl font-bold text-ink">عطاء</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             نظام إدارة التبرعات الشهرية للمواكب الحسينية
           </p>
@@ -311,7 +311,7 @@ function WelcomePage() {
             >
               <span className="flex items-center gap-3">
                 <ShieldCheck className="h-6 w-6 text-gold" />
-                <span className="font-display text-xl font-bold">صاحب الموكب</span>
+                <span className="font-display text-xl font-bold">صاحب موكب</span>
               </span>
               <ArrowRight className="h-5 w-5 rotate-180 text-muted-foreground" />
             </button>
