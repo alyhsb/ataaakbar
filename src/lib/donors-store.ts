@@ -779,6 +779,14 @@ export async function sendReminderToAll() {
     ...(data ?? []).map((r) => mapNotification(r as NotificationRow)),
     ...notifications,
   ];
+  notifyWhatsapp(
+    active.map((d) => ({
+      donorId: d.id,
+      title: "تذكير بالتبرع الشهري",
+      body: "حان موعد تبرعك الشهري.",
+    })),
+  );
+
   emit();
   return active.length;
 }
