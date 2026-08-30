@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendWhatsappNotifications } from "@/lib/whatsapp-notify.functions";
+
 
 export type PaymentStatus = "paid" | "unpaid";
 export type Currency = "IQD" | "USD";
@@ -643,6 +645,21 @@ export async function deletePayment(paymentId: string) {
 /* Notifications                                                       */
 /* ------------------------------------------------------------------ */
 
+/** Mirrors in-app notifications to WhatsApp; never blocks or breaks the UI. */
+function notifyWhatsapp(items: { donorId: string; title: string; body: string }[]) {
+  const messages = items
+    .map((i) => {
+      const donor = donors.find((d) => d.id === i.donorId);
+      if (!donor?.phone) return null;
+      return { phone: donor.phone, text: `*${i.title}*\n${i.body}\n\nعطاء الأكبر` };
+    })
+    .filter((m): m is { phone: string; text: string } => m !== null);
+  if (messages.length === 0) return;
+  void sendWhatsappNotifications({ data: { messages } }).catch((err) => {
+    console.error("WhatsApp notification delivery failed", err);
+  });
+}
+
 async function pushNotification(input: {
   donorId: string;
   kind: NotificationKind;
@@ -661,8 +678,10 @@ async function pushNotification(input: {
     .single();
   if (error) return;
   notifications = [mapNotification(data as NotificationRow), ...notifications];
+  notifyWhatsapp([input]);
   emit();
 }
+
 
 export async function markNotificationRead(id: string) {
   notifications = notifications.map((n) => (n.id !== id ? n : { ...n, read: true }));
@@ -728,6 +747,14 @@ export async function startNewMonth() {
     ...(notifRows ?? []).map((r) => mapNotification(r as NotificationRow)),
     ...notifications,
   ];
+  notifyWhatsapp(
+    missing.map((d) => ({
+      donorId: d.id,
+      title: `بدأ شهر ${monthLabel(month)} ${year}`,
+      body: `اشتراكك لهذا الشهر ${formatMoney(d.monthlyAmount, d.currency)} وهو غير مسدد حالياً.`,
+    })),
+  );
+
   emit();
   return { month, year, count: missing.length };
 }
@@ -752,6 +779,14 @@ export async function sendReminderToAll() {
     ...(data ?? []).map((r) => mapNotification(r as NotificationRow)),
     ...notifications,
   ];
+  notifyWhatsapp(
+    active.map((d) => ({
+      donorId: d.id,
+      title: "تذكير بالتبرع الشهري",
+      body: "حان موعد تبرعك الشهري.",
+    })),
+  );
+
   emit();
   return active.length;
 }
