@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendWhatsappNotifications } from "@/lib/whatsapp-notify.functions";
+
 
 export type PaymentStatus = "paid" | "unpaid";
 export type Currency = "IQD" | "USD";
