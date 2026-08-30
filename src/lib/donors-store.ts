@@ -747,6 +747,14 @@ export async function startNewMonth() {
     ...(notifRows ?? []).map((r) => mapNotification(r as NotificationRow)),
     ...notifications,
   ];
+  notifyWhatsapp(
+    missing.map((d) => ({
+      donorId: d.id,
+      title: `بدأ شهر ${monthLabel(month)} ${year}`,
+      body: `اشتراكك لهذا الشهر ${formatMoney(d.monthlyAmount, d.currency)} وهو غير مسدد حالياً.`,
+    })),
+  );
+
   emit();
   return { month, year, count: missing.length };
 }
