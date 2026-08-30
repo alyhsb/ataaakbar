@@ -645,6 +645,21 @@ export async function deletePayment(paymentId: string) {
 /* Notifications                                                       */
 /* ------------------------------------------------------------------ */
 
+/** Mirrors in-app notifications to WhatsApp; never blocks or breaks the UI. */
+function notifyWhatsapp(items: { donorId: string; title: string; body: string }[]) {
+  const messages = items
+    .map((i) => {
+      const donor = donors.find((d) => d.id === i.donorId);
+      if (!donor?.phone) return null;
+      return { phone: donor.phone, text: `*${i.title}*\n${i.body}\n\nعطاء الأكبر` };
+    })
+    .filter((m): m is { phone: string; text: string } => m !== null);
+  if (messages.length === 0) return;
+  void sendWhatsappNotifications({ data: { messages } }).catch((err) => {
+    console.error("WhatsApp notification delivery failed", err);
+  });
+}
+
 async function pushNotification(input: {
   donorId: string;
   kind: NotificationKind;
@@ -663,8 +678,10 @@ async function pushNotification(input: {
     .single();
   if (error) return;
   notifications = [mapNotification(data as NotificationRow), ...notifications];
+  notifyWhatsapp([input]);
   emit();
 }
+
 
 export async function markNotificationRead(id: string) {
   notifications = notifications.map((n) => (n.id !== id ? n : { ...n, read: true }));
